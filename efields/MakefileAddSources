@@ -1,0 +1,1 @@
+SOURCES += efield.cpp efield_const.cpp efield_sin.cpp efield_square.cpp

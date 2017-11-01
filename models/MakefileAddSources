@@ -1,0 +1,1 @@
+SOURCES += model.cpp model_bocf.cpp model_luorudy.cpp model_tnnp2006b.cpp model_mitchschaeff.cpp model_fentonkarma.cpp

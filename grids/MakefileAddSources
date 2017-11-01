@@ -1,0 +1,3 @@
+VPATH += :grids/hets
+SOURCES += grid.cpp grid_fdm2dcartesian.cpp grid_fdm3dcartesian.cpp bessel.cpp
+-include grids/hets/MakefileAddSources

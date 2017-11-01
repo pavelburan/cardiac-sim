@@ -1,0 +1,328 @@
+#include "model_luorudy.h"
+#include "../configuration.h"
+#include <iostream>
+#include <stdlib.h>
+#include <math.h>
+//omp//#include <omp.h>
+
+Model_LuoRudy::Model_LuoRudy(const Grid& grid, const std::string& configFileName, const std::string& keyPrefix, double VmThresh, double dVmdtThresh, const double LuoRudy_Params[], double VmMin, double VmMax)
+											:Model(grid,configFileName,keyPrefix,8,VmThresh,dVmdtThresh,VmMin,VmMax),lut_exp(),E_Na(p[0]),K_0(p[1]),E_K(p[2]),G_K(p[3]),E_K1(p[4]),G_K1(p[5]),E_Kp(p[6]),G_Kp(p[7]),G_Na(p[8]),G_Si(p[9]),c_h(p[10]),c_j(p[11]),c_m(p[12]),c_d(p[13]),c_f(p[14]),c_X(p[15])
+{
+	E_Na = 54.4;
+	K_0 = 5.4;
+	E_K = -77.0;
+	G_K = 0.282;
+	E_K1 = -87.25;
+	G_K1 = 0.6047;
+	E_Kp = -87.25;
+	G_Kp = 0.0183;
+	G_Na = 23.0;
+	G_Si = 0.09;
+	c_h = 1.0;
+	c_j = 1.0;
+	c_m = 1.0;
+	c_d = 1.0;
+	c_f = 1.0;
+	c_X = 1.0;
+	
+	if(LuoRudy_Params != NULL)
+		for(int i=0;i<16;i++)
+			p[i] = (LuoRudy_Params[i] >= 0.0) ? LuoRudy_Params[i] : p[i];
+	
+	restingState[0] = -84.3801107371;
+	restingState[1] = 0.982660523699656;
+	restingState[2] = 0.989108212766685;
+	restingState[3] = 0.00171338077730188;
+	restingState[4] = 0.00302126301779861;
+	restingState[5] = 0.999967936476325;
+	restingState[6] = 0.0417603108167287;
+	restingState[7] = 0.00017948816388306;
+	
+	excitedState[0] = 0.0;
+	excitedState[1] = 0.013466785134096645*0.5 + restingState[1]*0.5;
+	excitedState[2] = 0.0080369236341538974*0.5 + restingState[2]*0.5;
+	excitedState[3] = 0.16770627638045082*0.5 + restingState[3]*0.5;
+	excitedState[4] = 0.22938134304378971*0.5 + restingState[4]*0.5;
+	excitedState[5] = 0.63725773300847988*0.5 + restingState[5]*0.5;
+	excitedState[6] = 0.39515751930580828*0.5 + restingState[6]*0.5;
+	excitedState[7] = 0.003234453122370621*0.5 + restingState[7]*0.5;
+
+}
+
+void Model_LuoRudy::readModelParams(){
+	Model::readModelParams();
+	double LuoRudy_Params[16];
+	std::stringstream paramName;
+	for(int i=0;i<16;i++){
+		LuoRudy_Params[i] = -1.0;
+		paramName.str("");
+		paramName << "Param_" << i;
+		cfg.readInto(LuoRudy_Params[i], paramName.str());
+	}
+	for(int i=0;i<16;i++)
+		p[i] = (LuoRudy_Params[i] >= 0.0) ? LuoRudy_Params[i] : p[i];
+}
+
+void Model_LuoRudy::getf_Vm(const double &Vm, double &dVmdt, const double &h, const double &j, const double &m, const double &d, const double &f, const double &X, const double &Ca) const{
+	double alpha, beta;
+	double I_Na, I_si, I_K, I_K1, I_Kp, I_b;
+	double E_si, X_i, K_p;
+		
+	I_Na = G_Na*m*m*m*h*j*(Vm-E_Na);
+		
+	E_si = 7.7 - 13.0287*log(Ca);
+	I_si = G_Si*d*f*(Vm - E_si);
+		
+	X_i = (Vm >= -100.0) ? 2.837*(lut_exp(0.04*(Vm+77.0)) - 1.0) / ((Vm+77.0)*lut_exp(0.04*(Vm+35.0))) : 1.0;
+	I_K = G_K*X*X_i*(Vm-E_K);
+		
+	alpha = 1.02/(1.0 + lut_exp(0.2385*(Vm-E_K1-59.215)));
+	beta = (0.49124*lut_exp(0.08032*(Vm-E_K1+5.476)) + lut_exp(0.06175*(Vm-E_K1-594.31))) / (1.0 + lut_exp(-0.5143*(Vm-E_K1+4.753)));
+	I_K1 = G_K1*alpha/(alpha+beta)*(Vm-E_K1);
+		
+	K_p = 1.0/(1.0 + lut_exp((7.488-Vm)/5.98));
+	I_Kp = 0.0183*K_p*(Vm-E_Kp);
+		
+	I_b = 0.03921*(Vm+59.87);
+		
+	dVmdt = -(I_Na + I_si + I_K + I_K1 + I_Kp + I_b);
+}
+
+void Model_LuoRudy::getab_HH(const double &Vm, const double &h, double &a_h, double &b_h, const double &j, double &a_j, double &b_j, const double &m, double &a_m, double &b_m, const double &d, double &a_d, double &b_d, const double &f, double &a_f, double &b_f, const double &X, double &a_X, double &b_X, const double &Ca) const{
+	double alpha, beta;
+		
+	alpha = (Vm >= -40.0) ? 0.0 : 0.135*lut_exp(-(Vm+80.0)/6.8); 
+	beta = (Vm >= -40.0) ? 1.0/(0.13*(1.0+lut_exp(-(Vm+10.66)/11.1))) : 3.56*lut_exp(0.079*Vm) + 3.1e5*lut_exp(0.35*Vm);
+	a_h = -(alpha+beta)*c_h;
+	b_h = alpha*c_h;	
+		
+	alpha = (Vm >= -40.00) ? 0.0 : (Vm+37.78) * (-1.2714e5*lut_exp(0.2444*Vm) - 3.474e-5*lut_exp(-0.04391*Vm)) / (1.0 + lut_exp(0.311*(Vm+79.23)));
+	beta = (Vm >= -39.826) ? 0.3*lut_exp(-2.535e-7*Vm) / (1.0 + lut_exp(-0.1*(Vm+32.0))) : 0.1212*lut_exp(-0.01052*Vm) / (1.0 + lut_exp(-0.1378*(Vm+40.14)));
+	a_j = -(alpha+beta)*c_j;
+	b_j = alpha*c_j;
+		
+	alpha = 0.32*(Vm + 47.13) / (1.0 - lut_exp(-0.1*(Vm+47.13)));
+	beta = 0.08*lut_exp(-Vm/11.0);
+	a_m = -(alpha+beta)*c_m;
+	b_m = alpha*c_m;
+		
+	alpha = 0.095*lut_exp(-0.01*(Vm-5.0)) / (1.0 + lut_exp(-0.072*(Vm-5.0)));
+	beta = 0.07*lut_exp(-0.017*(Vm+44.0)) / (1.0 + lut_exp(0.05*(Vm+44.0)));
+	a_d = -(alpha+beta)*c_d;
+	b_d = alpha*c_d;	
+	
+	alpha = 0.012*lut_exp(-0.008*(Vm+28.0)) / (1.0 + lut_exp(0.15*(Vm+28.0)));
+	beta = 0.0065*lut_exp(-0.02*(Vm+30.0)) / (1.0 + lut_exp(-0.2*(Vm+30.0)));
+	a_f = -(alpha+beta)*c_f;
+	b_f = alpha*c_f;	
+		
+	alpha = 0.0005*lut_exp(0.083*(Vm+50.0)) / (1.0 + lut_exp(0.057*(Vm+50.0)));
+	beta = 0.0013*lut_exp(-0.06*(Vm+20.0)) / (1.0 + lut_exp(-0.04*(Vm+20.0)));
+	a_X = -(alpha+beta)*c_X;
+	b_X = alpha*c_X;
+}
+
+void Model_LuoRudy::getf_NL(const double &Vm, const double &h, const double &j, const double &m, const double &d, const double &f, const double &X, const double &Ca, double &dCadt) const{
+	double I_si, E_si;
+		
+	E_si = 7.7 - 13.0287*log(Ca);
+	I_si = G_Si*d*f*(Vm - E_si);
+	
+	dCadt = -1e-4*I_si + 0.07*(1e-4 - Ca);
+}
+
+void Model_LuoRudy::f(const double *__restrict__ y, double *__restrict__ f, double t, int n) const{
+	double a_h, a_j, a_m, a_d, a_f, a_X;
+	double b_h, b_j, b_m, b_d, b_f, b_X;
+	getf_Vm(y[0], f[0], y[n], y[2*n], y[3*n], y[4*n], y[5*n], y[6*n], y[7*n]);
+	getab_HH(y[0], y[n], a_h, b_h, y[2*n], a_j, b_j, y[3*n], a_m, b_m, y[4*n], a_d, b_d, y[5*n], a_f, b_f, y[6*n], a_X, b_X, y[7*n]);
+	f[n] = a_h*y[n]+b_h;
+	f[2*n] = a_j*y[2*n]+b_j;
+	f[3*n] = a_m*y[3*n]+b_m;
+	f[4*n] = a_d*y[4*n]+b_d;
+	f[5*n] = a_f*y[5*n]+b_f;
+	f[6*n] = a_X*y[6*n]+b_X;
+	getf_NL(y[0], y[n], y[2*n], y[3*n], y[4*n], y[5*n], y[6*n], y[7*n], f[7*n]);
+}
+
+void Model_LuoRudy::ab(const double *__restrict__ y, double *__restrict__ a, double *__restrict__ b, double t, int n) const{
+	getf_Vm(y[0], b[0], y[n], y[2*n], y[3*n], y[4*n], y[5*n], y[6*n], y[7*n]);
+	a[0] = 0;
+	getab_HH(y[0], y[n], a[n], b[n], y[2*n], a[2*n], b[2*n], y[3*n], a[3*n], b[3*n], y[4*n], a[4*n], b[4*n], y[5*n], a[5*n], b[5*n], y[6*n], a[6*n], b[6*n], y[7*n]);
+	getf_NL(y[0], y[n], y[2*n], y[3*n], y[4*n], y[5*n], y[6*n], y[7*n], b[7*n]);
+	a[7*n] = 0;
+}
+
+void Model_LuoRudy::f_Vm(const double *__restrict__ y, double *__restrict__ f, double t, int n) const{
+	getf_Vm(y[0], f[0], y[n], y[2*n], y[3*n], y[4*n], y[5*n], y[6*n], y[7*n]);
+}
+
+void Model_LuoRudy::ab_HH(const double *__restrict__ y, double *__restrict__ a, double *__restrict__ b, double t, int n) const{
+	getab_HH(y[0], y[n], a[n], b[n], y[2*n], a[2*n], b[2*n], y[3*n], a[3*n], b[3*n], y[4*n], a[4*n], b[4*n], y[5*n], a[5*n], b[5*n], y[6*n], a[6*n], b[6*n], y[7*n]);
+}
+
+void Model_LuoRudy::f_NL(const double *__restrict__ y, double *__restrict__ f, double t, int n) const{
+	getf_NL(y[0], y[n], y[2*n], y[3*n], y[4*n], y[5*n], y[6*n], y[7*n], f[7*n]);
+}
+
+void Model_LuoRudy::getdVmdt(const double *__restrict__ y, double *__restrict__ dVmdt, double t, int n, int ibeg, int iend) const{
+	const double *__restrict__ Vm = &y[0];
+	const double *__restrict__ h = &y[n];
+	const double *__restrict__ j = &y[2*n];
+	const double *__restrict__ m = &y[3*n];
+	const double *__restrict__ d = &y[4*n];
+	const double *__restrict__ f = &y[5*n];
+	const double *__restrict__ X = &y[6*n];
+	const double *__restrict__ Ca = &y[7*n];
+	
+	iend = (iend!=0) ? iend : n;
+	#pragma omp parallel for
+	for(int i=ibeg;i<iend;i++){
+		getf_Vm(Vm[i], dVmdt[i], h[i], j[i], m[i], d[i], f[i], X[i], Ca[i]);
+	}
+}
+
+void Model_LuoRudy::f(const double *__restrict__ y, double *__restrict__ dydt, double t, int n, int ibeg, int iend) const{
+	const double *__restrict__ Vm = &y[0];
+	const double *__restrict__ h = &y[n];
+	const double *__restrict__ j = &y[2*n];
+	const double *__restrict__ m = &y[3*n];
+	const double *__restrict__ d = &y[4*n];
+	const double *__restrict__ f = &y[5*n];
+	const double *__restrict__ X = &y[6*n];
+	const double *__restrict__ Ca = &y[7*n];
+
+	double *__restrict__ dVmdt = &dydt[0];
+	double *__restrict__ dhdt = &dydt[n];
+	double *__restrict__ djdt = &dydt[2*n];
+	double *__restrict__ dmdt = &dydt[3*n];
+	double *__restrict__ dddt = &dydt[4*n];
+	double *__restrict__ dfdt = &dydt[5*n];
+	double *__restrict__ dXdt = &dydt[6*n];
+	double *__restrict__ dCadt = &dydt[7*n];
+	
+	iend = (iend!=0) ? iend : n;
+	#pragma omp parallel for
+	for(int i=ibeg;i<iend;i++){
+		double bDiva;
+		double a_h, a_j, a_m, a_d, a_f, a_X;
+		double b_h, b_j, b_m, b_d, b_f, b_X;
+		
+		getf_Vm(Vm[i], dVmdt[i], h[i], j[i], m[i], d[i], f[i], X[i], Ca[i]);
+		getab_HH(Vm[i], h[i], a_h, b_h, j[i], a_j, b_j, m[i], a_m, b_m, d[i], a_d, b_d, f[i], a_f, b_f, X[i], a_X, b_X, Ca[i]);	
+		getf_NL(Vm[i], h[i], j[i], m[i], d[i], f[i], X[i], Ca[i], dCadt[i]);
+
+		dhdt[i] = (a_h*h[i] + b_h)*c_h;
+		djdt[i] = (a_j*j[i] + b_j)*c_j;
+		dmdt[i] = (a_m*m[i] + b_m)*c_m;
+		dddt[i] = (a_d*d[i] + b_d)*c_d;
+		dfdt[i] = (a_f*f[i] + b_f)*c_f;
+		dXdt[i] = (a_X*X[i] + b_X)*c_X;
+
+	}
+}
+
+void Model_LuoRudy::f_FE(double *__restrict__ y, double *__restrict__ dVmdt, double t, double dt, int n, int ibeg, int iend) const{
+	double *__restrict__ Vm = &y[0];
+	double *__restrict__ h = &y[n];
+	double *__restrict__ j = &y[2*n];
+	double *__restrict__ m = &y[3*n];
+	double *__restrict__ d = &y[4*n];
+	double *__restrict__ f = &y[5*n];
+	double *__restrict__ X = &y[6*n];
+	double *__restrict__ Ca = &y[7*n];
+		
+	#pragma omp parallel for
+	for(int i=ibeg;i<iend;i++){
+		double a_h, a_j, a_m, a_d, a_f, a_X;
+		double b_h, b_j, b_m, b_d, b_f, b_X;
+		double dCadt;
+		
+		getf_Vm(Vm[i], dVmdt[i], h[i], j[i], m[i], d[i], f[i], X[i], Ca[i]);
+		getab_HH(Vm[i], h[i], a_h, b_h, j[i], a_j, b_j, m[i], a_m, b_m, d[i], a_d, b_d, f[i], a_f, b_f, X[i], a_X, b_X, Ca[i]);	
+		getf_NL(Vm[i], h[i], j[i], m[i], d[i], f[i], X[i], Ca[i], dCadt);
+		
+		h[i] += dt*(a_h*h[i] + b_h)*c_h;
+		j[i] += dt*(a_j*j[i] + b_j)*c_j;
+		m[i] += dt*(a_m*m[i] + b_m)*c_m;
+		d[i] += dt*(a_d*d[i] + b_d)*c_d;
+		f[i] += dt*(a_f*f[i] + b_f)*c_f;
+		X[i] += dt*(a_X*X[i] + b_X)*c_X;
+		Ca[i] += dt*dCadt;	
+	}	
+}
+
+void Model_LuoRudy::f_RL_FE(double *__restrict__ y, double *__restrict__ dVmdt, double t, double dt, int n, int ibeg, int iend) const{
+	double *__restrict__ Vm = &y[0];
+	double *__restrict__ h = &y[n];
+	double *__restrict__ j = &y[2*n];
+	double *__restrict__ m = &y[3*n];
+	double *__restrict__ d = &y[4*n];
+	double *__restrict__ f = &y[5*n];
+	double *__restrict__ X = &y[6*n];
+	double *__restrict__ Ca = &y[7*n];
+		
+	#pragma omp parallel for
+	for(int i=ibeg;i<iend;i++){
+		double bDiva;
+		double a_h, a_j, a_m, a_d, a_f, a_X;
+		double b_h, b_j, b_m, b_d, b_f, b_X;
+		double dCadt;
+		
+		getf_Vm(Vm[i], dVmdt[i], h[i], j[i], m[i], d[i], f[i], X[i], Ca[i]);
+		getab_HH(Vm[i], h[i], a_h, b_h, j[i], a_j, b_j, m[i], a_m, b_m, d[i], a_d, b_d, f[i], a_f, b_f, X[i], a_X, b_X, Ca[i]);	
+		getf_NL(Vm[i], h[i], j[i], m[i], d[i], f[i], X[i], Ca[i], dCadt);
+		
+		bDiva = b_h/a_h;
+		h[i] = lut_exp(dt*a_h*c_h)*(h[i] + bDiva)-bDiva;
+		bDiva = b_j/a_j;
+		j[i] = lut_exp(dt*a_j*c_j)*(j[i] + bDiva)-bDiva;
+		bDiva = b_m/a_m;
+		m[i] = lut_exp(dt*a_m*c_m)*(m[i] + bDiva)-bDiva;
+		bDiva = b_d/a_d;
+		d[i] = lut_exp(dt*a_d*c_d)*(d[i] + bDiva)-bDiva;
+		bDiva = b_f/a_f;
+		f[i] = lut_exp(dt*a_f*c_f)*(f[i] + bDiva)-bDiva;
+		bDiva = b_X/a_X;
+		X[i] = lut_exp(dt*a_X*c_X)*(X[i] + bDiva)-bDiva;
+		Ca[i] += dt*dCadt;	
+	}
+}
+
+void Model_LuoRudy::f_RL_FE_GS(double *__restrict__ y, double *__restrict__ dVmdt, double t, double dt, int n, int ibeg, int iend) const{
+	double *__restrict__ Vm = &y[0];
+	double *__restrict__ h = &y[n];
+	double *__restrict__ j = &y[2*n];
+	double *__restrict__ m = &y[3*n];
+	double *__restrict__ d = &y[4*n];
+	double *__restrict__ f = &y[5*n];
+	double *__restrict__ X = &y[6*n];
+	double *__restrict__ Ca = &y[7*n];
+	
+	#pragma omp parallel for
+	for(int i=ibeg;i<iend;i++){
+		double bDiva;
+		double a_h, a_j, a_m, a_d, a_f, a_X;
+		double b_h, b_j, b_m, b_d, b_f, b_X;
+		double dCadt;
+		
+		getab_HH(Vm[i], h[i], a_h, b_h, j[i], a_j, b_j, m[i], a_m, b_m, d[i], a_d, b_d, f[i], a_f, b_f, X[i], a_X, b_X, Ca[i]);	
+		bDiva = b_h/a_h;
+		h[i] = lut_exp(dt*a_h*c_h)*(h[i] + bDiva)-bDiva;
+		bDiva = b_j/a_j;
+		j[i] = lut_exp(dt*a_j*c_j)*(j[i] + bDiva)-bDiva;
+		bDiva = b_m/a_m;
+		m[i] = lut_exp(dt*a_m*c_m)*(m[i] + bDiva)-bDiva;
+		bDiva = b_d/a_d;
+		d[i] = lut_exp(dt*a_d*c_d)*(d[i] + bDiva)-bDiva;
+		bDiva = b_f/a_f;
+		f[i] = lut_exp(dt*a_f*c_f)*(f[i] + bDiva)-bDiva;
+		bDiva = b_X/a_X;
+		X[i] = lut_exp(dt*a_X*c_X)*(X[i] + bDiva)-bDiva;
+		
+		getf_Vm(Vm[i], dVmdt[i], h[i], j[i], m[i], d[i], f[i], X[i], Ca[i]);
+		getf_NL(Vm[i], h[i], j[i], m[i], d[i], f[i], X[i], Ca[i], dCadt);
+		Ca[i] += dt*dCadt;	
+	}			
+}
+
