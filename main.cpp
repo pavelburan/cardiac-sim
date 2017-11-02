@@ -10,7 +10,7 @@
 #include "timeintegration.h"
 
 int main(int argc, char *argv[]){
-	//clustertest
+	//Desktop
 	Eps::setMaxUlps(4);
 	Eps::setRelEps(1e-6);
 	Configuration::loadConfigParams(argc, argv, "config.py", "  ");
