@@ -31,7 +31,7 @@ void Configuration::rmSpecialChar(std::string& str, char spezialChar){
 			str.erase(i--,1);
 }
 
-std::string Configuration::addPrefixesToFileName(std::string fileName){
+std::string Configuration::addPrefixesToFileName(std::string fileName, int subTimeIndexShift){
 	int pos = -1;
 	while((pos=fileName.find("(@SR)", pos+1)) != string::npos)//SR SC ST
 		fileName.replace(pos, 5, subRepeatPrefix);
@@ -39,8 +39,11 @@ std::string Configuration::addPrefixesToFileName(std::string fileName){
 	while((pos=fileName.find("(@SC)", pos+1)) != string::npos)//SR SC ST
 		fileName.replace(pos, 5, subConfigPrefix);
 	pos = -1;
+	std::string subTimePrefixTemp = subTimePrefix;
+	if(subTimeIndexShift)
+		subTimePrefixTemp = std::to_str(subIndex[1]+subTimeIndexShift) + "_";
 	while((pos=fileName.find("(@ST)", pos+1)) != string::npos)//SR SC ST
-		fileName.replace(pos, 5, subTimePrefix);
+		fileName.replace(pos, 5, subTimePrefixTemp);
 	pos = -1;
 	while((pos=fileName.find("(@P)", pos+1)) != string::npos)//SR SC ST
 		fileName.replace(pos, 4, subTimePrefix);

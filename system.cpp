@@ -49,13 +49,14 @@ System::System(const std::string& configFileName, const std::string& keyPrefix):
 
 System::~System(){
 	if(grid)
-		delete grid;	
+		delete grid;
 	if(efield)
 		delete efield;
 	for(int i=0;i<orderParameters.size();i++)
 		delete orderParameters[i];
-	for(int i=0;i<observers.size();i++)
+	for(int i=0;i<observers.size();i++){
 		delete observers[i];
+	}
 }
 
 void System::readTimeIntegrationParams(){
@@ -426,8 +427,11 @@ void System::loadInitialState(double *y0, const std::string fileName) const{
 		file.seekg(0, file.beg);
 		double *temp = new double[initialN];
 		file.read(reinterpret_cast<char*>(temp),sizeof(double)*initialN);
+		std::cerr<<"loadInitialState test1"<<std::endl;
 		grid->interpolateInitialStateOnGrid(y0, temp, initialN);
+		std::cerr<<"loadInitialState test2"<<std::endl;
 		delete[] temp;
+		std::cerr<<"loadInitialState test3"<<std::endl;
 	}
 	else{
 		std::cerr<<"Error in "<< __FUNCTION__ << " in " << __FILE__ << " at line " << __LINE__ << std::endl;

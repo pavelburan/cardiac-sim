@@ -87,7 +87,7 @@ public:
 	static void rmSpecialChar(std::string& str, char spezialChar);
 	template<class T>
 	static int stringAsVector(std::vector<T>& vec, std::string str);
-	static std::string addPrefixesToFileName(std::string fileName);
+	static std::string addPrefixesToFileName(std::string fileName, int subTimeIndexShift=0);
 	static int getFileLength(const std::string& fileName, int typeSize=1);
 
 	static void loadConfigParams(int argc, char * const argv[], const std::string& newMainConfigFileName, const std::string& defaultLevelSpace="", const std::vector<std::string>& levelSpaces=std::vector<std::string>(0));
@@ -115,7 +115,7 @@ public:
 	static std::string& getSavePrefix(){return savePrefix;}
 	
 	static std::string getDestFolderFileName(const std::string& fileName){ return tempDir + destDir + addPrefixesToFileName(fileName);}
-	static std::string getPlotFolderFileName(const std::string& fileName){ return tempDir + destDir + "plotData/" + addPrefixesToFileName(fileName);}
+	static std::string getPlotFolderFileName(const std::string& fileName, int subTimeIndexShift=0){ return tempDir + destDir + "plotData/" + addPrefixesToFileName(fileName, subTimeIndexShift);}
 	static std::string getPlotFolderSubRepeatResumePrefixFileName(const std::string& fileName){ return tempDir + destDir + "plotData/" + subRepeatPrefix + resumePrefix + fileName;}
 	static std::string getPlotFolderSubRepeatSavePrefixFileName(const std::string& fileName){return tempDir + destDir + "plotData/" + subRepeatPrefix + savePrefix + fileName;}
 	static std::string getPlotFolderSubTimeResumePrefixFileName(const std::string& fileName){return tempDir + destDir + "plotData/" + subTimePrefix + resumePrefix + fileName;}

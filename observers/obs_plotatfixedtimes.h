@@ -28,6 +28,7 @@ public:
 	
 protected:
 	bool forEverySubTimeIndex;
+	int SubTimeIndexShift;
 	bool saveAll;
 	std::vector<double> timeSteps;
 	int nextIndex;

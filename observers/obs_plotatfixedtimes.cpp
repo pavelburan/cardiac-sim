@@ -5,11 +5,12 @@
 #include <algorithm>
 #include <limits>
 
-Obs_plotAtFixedTimes::Obs_plotAtFixedTimes(System& system, const std::string& configFileName, const std::string& keyPrefix):Observer(system,configFileName,keyPrefix),forEverySubTimeIndex(true),saveAll(false),timeSteps(),nextIndex(0){
+Obs_plotAtFixedTimes::Obs_plotAtFixedTimes(System& system, const std::string& configFileName, const std::string& keyPrefix):Observer(system,configFileName,keyPrefix),forEverySubTimeIndex(true),SubTimeIndexShift(0),saveAll(false),timeSteps(),nextIndex(0){
 }
 
 void Obs_plotAtFixedTimes::readParams(){
 	cfg.readInto(forEverySubTimeIndex, "forEverySubTimeIndex");
+	cfg.readInto(SubTimeIndexShift, "SubTimeIndexShift");
 	cfg.readInto(saveAll, "saveAll");
 	cfg.readIntoVector(timeSteps, "timeSteps");
 }
@@ -34,7 +35,7 @@ void Obs_plotAtFixedTimes::init(){
 
 bool Obs_plotAtFixedTimes::observe(double *__restrict__ y_prev, double *__restrict__ y, double *__restrict__ dVmdt, double *__restrict__ temp, double t, double timeStep, bool isResumeAbleStep){
 	if(t > timeSteps[nextIndex] - Eps::t()){
-		std::string fileName = cfg.getPlotFolderFileName(std::string("(@SR)(@SC)(@ST)y_fixed_") + std::to_str(nextIndex) + std::string(".bin"));
+		std::string fileName = cfg.getPlotFolderFileName(std::string("(@SR)(@SC)(@ST)y_fixed_") + std::to_str(nextIndex) + std::string(".bin"), SubTimeIndexShift);
 		system.saveState(y, fileName, true);
 		std::cerr<<fileName<<std::endl;
 		cfg.addCleanFile(fileName, 2);

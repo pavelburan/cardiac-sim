@@ -19,7 +19,7 @@
 #CFLAGS 	 :=-g -fopenmp -MMD -MP
 CC       := icc
 CL       := icpc
-CFLAGS 	 := -std=c++11 -O3 -g -no-ipo -restrict -fargument-noalias -ansi-alias -openmp -openmp-simd -MMD -MP #-opt-report=3#-Wall -Wextra -Winline -openmp-report0 -opt-report0 -vec_report3 -par_report3 -fast
+CFLAGS 	 := -std=c++11 -O3 -g -no-ipo -restrict -fargument-noalias -ansi-alias -qopenmp -qopenmp-simd -MMD -MP #-opt-report=3#-Wall -Wextra -Winline -openmp-report0 -opt-report0 -vec_report3 -par_report3 -fast
 
 VPATH    := efields:grids:models:observers
 TARGET   := prog
