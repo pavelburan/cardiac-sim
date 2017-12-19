@@ -9,6 +9,9 @@
 #include "obs_terminationtime.h"
 #include "obs_ordparamtimeseries.h"
 #include "obs_plotatfixedtimes.h"
+#include "obs_minpaceperiod.h"
+#include "obs_minpaceperiod0.h"
+#include "obs_activatedhotspots.h"
 #include "../system.h"
 #include <iostream>
 
@@ -33,6 +36,12 @@ Observer* Observer::newObserver(const std::string& observerType, System& system,
 		return new Obs_ordParamTimeSeries(system, configFileName, keyPrefix);
 	if(observerType == "PlotAtFixedTimes")
 		return new Obs_plotAtFixedTimes(system, configFileName, keyPrefix);
+	if(observerType == "MinPacePeriod")
+		return new Obs_minPacePeriod(system, configFileName, keyPrefix);
+	if(observerType == "MinPacePeriod0")
+		return new Obs_minPacePeriod0(system, configFileName, keyPrefix);
+	if(observerType == "ActivatedHotSpots")
+		return new Obs_activatedHotSpots(system, configFileName, keyPrefix);
 	else{
 		std::cerr<<"Error in "<< __FUNCTION__ << " in " << __FILE__ << " at line " << __LINE__ << std::endl;
 		std::cerr<<"observerType="<<observerType<<" existiert nicht!"<<std::endl;

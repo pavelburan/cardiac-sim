@@ -13,14 +13,16 @@ void Obs_minPacePeriod::readParams(){
 	cfg.readInto(dT1, "dT1");
 	cfg.readInto(startT2, "startT2");
 	cfg.readInto(dT2, "dT2");
-	cfg.readInto(tCheck, "dtCheck");
+	cfg.readInto(dtCheck, "dtCheck");
 }
 
 void Obs_minPacePeriod::init(){
 	T = startT1;
 	Ts.push_back(T);
-	tPuls = efield.gettbeg();
-	tCheck = tPuls + dtCheck;
+	tPuls = system.gett0();
+	tCheck = tPuls + T + dtCheck;
+	efield.feedback(tPuls, tCheck, T);
+	tPuls += T;
 }
 
 bool Obs_minPacePeriod::observe(double *__restrict__ y_prev, double *__restrict__ y, double *__restrict__ dVmdt, double *__restrict__ temp, double t, double timeStep, bool isResumeAbleStep){
@@ -41,8 +43,6 @@ bool Obs_minPacePeriod::observe(double *__restrict__ y_prev, double *__restrict_
 			Ts.push_back(T);
 			tCheck = tPuls + dtCheck;
 			efield.feedback(tPuls);
-
-			return false;
 		}
 		else
 			return true;

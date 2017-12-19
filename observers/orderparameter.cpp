@@ -77,7 +77,7 @@ double OP_exciting::calc(double *__restrict__ y_prev, double *__restrict__ y, do
 }
 
 
-OP_cluster::OP_cluster(const System& system, const std::string& configFileName, const std::string& keyPrefix):OrderParameter(system,configFileName,keyPrefix),maxDistance(0.0),itTotalVector(){
+OP_cluster::OP_cluster(const System& system, const std::string& configFileName, const std::string& keyPrefix):OrderParameter(system,configFileName,keyPrefix),maxDistance(0.0),itTotalVector(),isExciting(){
 }
 
 void OP_cluster::readParams(){

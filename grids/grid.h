@@ -27,7 +27,8 @@ public:
 	virtual int getn()const =0;
 	virtual int getMaxNumVars()const=0;
 	virtual int getDim()const =0;
-	virtual double geth()const =0;
+	virtual double getminh()const=0;
+	virtual double getmaxh()const=0;
 	virtual double getVges()const =0;
 	virtual double getVSphere(double r)const =0;
 	virtual int getPosIndex(double xi=0.0, double eta=0.0, double zeta=0.0)const =0;
@@ -49,6 +50,9 @@ public:
 	const double& getdVmdtThresh(int posIndex)const{return dVmdtThresh[posIndex];}
 	virtual void setRestingState(double* y, const std::vector<int>& posIndices)const =0;
 	virtual void setExcitedState(double* y, const std::vector<int>& posIndices)const =0;
+	
+	//Hetzugriff
+	virtual bool getIsHet(int posIndex) const =0;
 	
 	virtual void readGridParams(){};
 	virtual void initGrid();

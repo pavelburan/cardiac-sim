@@ -5,8 +5,8 @@
 #include <math.h>
 #include <algorithm>
 
-Het_spheres::Het_spheres(const Grid& grid, const std::string& configFileName, const std::string& keyPrefix, double rmin, double rmax, double dr, double distance, double alpha, double rho, double frac)
-												:Hets(grid,configFileName,keyPrefix,frac),spheres(),fixedSpheres(),rmin(rmin),rmax(rmax),dr(dr),distance(distance),alpha(alpha),rho(rho){
+Het_spheres::Het_spheres(const Grid& grid, const std::string& configFileName, const std::string& keyPrefix, double rmin, double rmin_considered, double rmax, double dr, double distance, double alpha, double rho, double frac)
+												:Hets(grid,configFileName,keyPrefix,frac),spheres(),fixedSpheres(),rmin(rmin),rmin_considered(rmin_considered),rmax(rmax),dr(dr),distance(distance),alpha(alpha),rho(rho){
 }
 
 void Het_spheres::loadHets(const std::string fileName){
@@ -56,6 +56,7 @@ void Het_spheres::readHetsParams(){
 	Hets::readHetsParams();
 	cfg.readRawInto(fixedSpheres, "fixedSpheres");
 	cfg.readInto(rmin, "rmin");
+	cfg.readInto(rmin_considered, "rmin_considered");
 	cfg.readInto(rmax, "rmax");
 	cfg.readInto(dr, "dr");
 	cfg.readInto(distance, "distance");
@@ -147,6 +148,8 @@ void Het_spheres::initHets(){
 				Sphere temp;
 				for(int i=0;i<int(hetRadius.size());i++){
 					r = hetRadius[i];
+					if(r < rmin_considered-Eps::x())
+						break;
 					bool finished = false;
 					int k=0;
 					while( !finished && k++ <1000000){
@@ -171,6 +174,10 @@ void Het_spheres::initHets(){
 			}
 		}
 	}
+	for(int i=0;i<spheres.size();i++)
+		if(spheres[i].r < rmin_considered-Eps::x())
+			spheres.erase(spheres.begin()+i--);
+
 	fileName = cfg.getPlotFolderSubRepeatSavePrefixFileName("Het_spheres.bin");
 	saveHets(fileName);
 	cfg.addCleanFile(fileName, 1);

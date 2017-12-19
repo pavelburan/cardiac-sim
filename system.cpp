@@ -130,7 +130,7 @@ void System::readGridParams(){
 	
 	grid = Grid::newGrid(gridType, *this, gridConfigFileName, gridKeyPrefix);
 	grid->readGridParams();
-	Eps::setAbsEps_x(Eps::rel()*grid->geth());
+	Eps::setAbsEps_x(Eps::rel()*grid->getminh());
 	Eps::setAbsEps_x(Eps::rel());
 	cfg.printDown("ready\n");
 	

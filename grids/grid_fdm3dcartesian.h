@@ -31,7 +31,8 @@ public:
 	int getn() const {return n;}
 	int getMaxNumVars() const {return model->getnVars();}
 	int getDim()const{return 3;}
-	double geth()const{return fmin(fmin(hx,hy),hz);}
+	double getminh()const{return fmin(hx,hy);}
+	double getmaxh()const{return fmax(hx,hy);}
 	double getVges()const{return lx*ly*lz;}
 	double getVSphere(double r)const{return 4.0/3.0*M_PI*r*r*r;};
 	int getPosIndex(double xi=0.0, double eta=0.0, double zeta=0.0)const;
@@ -49,6 +50,9 @@ public:
 	Model& getModel(int posIndex) const{return *model;}
 	void setRestingState(double* y, const std::vector<int>& posIndices)const;
 	void setExcitedState(double* y, const std::vector<int>& posIndices)const;
+	
+	//Hetzugriff
+	virtual bool getIsHet(int posIndex) const{ return isHet[posIndex];}
 	
 	void readGridParams();
 	void initGrid();

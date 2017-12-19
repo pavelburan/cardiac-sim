@@ -29,8 +29,9 @@ double Efield_square::E(double t)const{
 void Efield_square::feedback(double newtbeg, double newtend, double newtPeriod){
 	tbeg = newtbeg;
 	tend = newtend;
-	double scalFac = newtPeriod/(a + b + c);
+	/*double scalFac = newtPeriod/(a + b + c);
 	a *=scalFac;
 	b *=scalFac;
-	c *=scalFac;
+	c *=scalFac;*/
+	c = newtPeriod - a - b;
 }

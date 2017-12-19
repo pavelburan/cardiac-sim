@@ -11,6 +11,13 @@ from config import *
 #import config
 #dreload(config)
 #from config import *
+p.rc('font', family='serif', serif='cm10', weight='extra bold', size='16')
+p.rc('text', usetex=True)
+#p.rc('axes', linewidth=1.0)
+#p.rc('axes.grid', linewidth=2.0)
+p.rcParams['text.latex.preamble'] = [r'\usepackage{siunitx}',r'\boldmath',r'\sisetup{detect-weight=true, detect-family=true}']
+#p.rcParams['image.cmap'] = 'jet'
+
 def plotFrame(xx,yy,zz,fig=1):
 	p.figure(fig)
 	p.clf()
@@ -26,8 +33,8 @@ def plotFrame(xx,yy,zz,fig=1):
 	p.figure(fig)
 	return 0
 
-hx=lx/(nx-1)
-hy=ly/(ny-1)
+hx=lx/(nx-1.0)
+hy=ly/(ny-1.0)
 x = linspace(0, lx, nx)
 y = linspace(0, ly, ny)
 xx,yy = meshgrid(x, y)
@@ -75,20 +82,20 @@ p.figure(fignum2D)
 #plotFrame(xx,yy,YY[0,:],1)
 
 #1D-Plot
-fignum1D = 2
-fig1D = p.figure(fignum1D)
-p.clf()
-data = fromfile(filename1D)
-N = data.shape[0]/2;
-t = data[0:N];
-E = data[N:2*N]
-axE = fig1D.add_subplot(2,1,1)
-axE.plot(t, E)
-p.xlabel('t in ms')
-p.ylabel('E in mV/cm')
-p.ion()
-p.show()
-p.figure(fignum1D)
+#fignum1D = 2
+#fig1D = p.figure(fignum1D)
+#p.clf()
+#data = fromfile(filename1D)
+#N = data.shape[0]/2;
+#t = data[0:N];
+#E = data[N:2*N]
+#axE = fig1D.add_subplot(2,1,1)
+#axE.plot(t, E)
+#p.xlabel('t in ms')
+#p.ylabel('E in mV/cm')
+#p.ion()
+#p.show()
+#p.figure(fignum1D)
 
 #Het-Plot
 #data = fromfile(filenameHet)

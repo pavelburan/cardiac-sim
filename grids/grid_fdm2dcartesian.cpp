@@ -108,10 +108,10 @@ std::vector<int> Grid_FDM2DCartesian::getPosIndicesSphere(int posIndex, double r
 	int jEnd = j0 + dj;
 	for(int j=jBeg;j<=jEnd;j++){
 		for(int i=iBeg;i<=iEnd;i++){
-			if(!isHet[getPosIndex(i,j)]){
+			//if(!isHet[getPosIndex(i,j)]){
 				if(pow((i-i0)*hx,2.0)+pow((j-j0)*hy,2.0)<=pow(r,2.0))
 					posIndices.push_back(getPosIndex(i,j));
-			}
+			//}
 		}
 	}
 

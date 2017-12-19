@@ -11,7 +11,7 @@ class Het_spheres : public Hets
 	};
 public:
 	//Konstruktor
-	Het_spheres(const Grid& grid, const std::string& configFileName, const std::string& keyPrefix="", double rmin=0.0, double rmax=0.0, double dr=0.0, double distance=0.0, double alpha=-2.74, double rho=0.0, double frac=0.0);
+	Het_spheres(const Grid& grid, const std::string& configFileName, const std::string& keyPrefix="", double rmin=0.0, double rmin_considered=0.0, double rmax=0.0, double dr=0.0, double distance=0.0, double alpha=-2.74, double rho=0.0, double frac=0.0);
 	//Destruktor
 	~Het_spheres(){};
 private:
@@ -40,6 +40,7 @@ protected:
 	std::vector<Sphere> spheres;
 	std::string fixedSpheres;
 	double rmin;
+	double rmin_considered;
 	double rmax;
 	double dr;
 	double distance;
