@@ -37,6 +37,8 @@ protected:
 	std::vector< std::vector< int > > hetBorder1PosIndices;
 	std::vector< std::vector< int > > hetBorder2PosIndices;
 	std::vector< std::vector< int > > hetBorder3PosIndices;
+	std::vector< std::vector< std::vector< int > > > hetBorder2NeighboursBorder1PosIndices;
+	std::vector< std::vector< std::vector< int > > > hetBorder2NeighboursBorder3PosIndices;
 	std::vector< int > hetActivationStatus;
 	std::vector< double > hetActivationTime;
 
