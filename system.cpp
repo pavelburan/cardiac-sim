@@ -315,7 +315,7 @@ void System::calcInitialCondition(double *y0){
 	cfg.printDown("ready\n");
 }
 
-bool System::obs(double *__restrict__ y_prev, double *__restrict__ y, double *__restrict__ dVmdt, double *__restrict__ temp, double t, double dt){
+bool System::obs(double *__restrict__ y_prev, double *__restrict__ y, double *__restrict__ dVmdt_prev, double *__restrict__ dVmdt, double *__restrict__ temp, double t, double dt){
 	bool finished = false;
 	std::string fileName;
 	bool isPlotSaveStep = t >= tpLast-Eps::t() || t >= tpSubTime-Eps::t();
@@ -325,7 +325,7 @@ bool System::obs(double *__restrict__ y_prev, double *__restrict__ y, double *__
 	obs_E_data.push_back(efield->E(t));
 	
 	for(int i=0;i<observers.size();i++){
-		finished |= observers[i]->observe(y_prev, y, dVmdt, temp, t, dt, isPlotSaveStep);
+		finished |= observers[i]->observe(y_prev, y, dVmdt_prev, dVmdt, temp, t, dt, isPlotSaveStep);
 	}
 
 	if(isPlotSaveStep){
@@ -357,14 +357,14 @@ bool System::obs(double *__restrict__ y_prev, double *__restrict__ y, double *__
 	return finished;
 }
 
-void System::obs_end(double *__restrict__ y_prev, double *__restrict__ y, double *__restrict__ dVmdt, double *__restrict__ temp, double t, double dt){
+void System::obs_end(double *__restrict__ y_prev, double *__restrict__ y, double *__restrict__ dVmdt_prev, double *__restrict__ dVmdt, double *__restrict__ temp, double t, double dt){
 	std::string fileName;
 	
 	cfg.printUp("Observers werden terminiert...");
 	
 	for(int i=0;i<observers.size();i++){
 		cfg.printUp("Observer"+std::to_str(i)+"="+observerTypes[i]+"...");
-		observers[i]->finalize(y_prev, y, dVmdt, temp, t);
+		observers[i]->finalize(y_prev, y, dVmdt_prev, dVmdt, temp, t);
 		cfg.printDown("ready");	
 	}
 	

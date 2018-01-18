@@ -23,31 +23,31 @@
 	#define MODELVARS_VEC_ORDERED false
 #endif
 
-void performDiffusionStepFE(DIA<double> &CoeffMatrix, DIA<double> &CoeffMatrixRhs, Vector<double> &Vm, Vector<double> &Vmprev, Vector<double> &rhsVm){
+void performDiffusionStepFE(DIA<double> &CoeffMatrix, DIA<double> &CoeffMatrixRhs, Vector<double> &Vm, Vector<double> &Vm_prev, Vector<double> &rhsVm){
 	Vm = rhsVm + CoeffMatrixRhs*Vm;
 }
 
-void performDiffusionStepBE(DIA<double> &CoeffMatrix, DIA<double> &CoeffMatrixRhs, Vector<double> &Vm, Vector<double> &Vmprev, Vector<double> &rhsVm){
+void performDiffusionStepBE(DIA<double> &CoeffMatrix, DIA<double> &CoeffMatrixRhs, Vector<double> &Vm, Vector<double> &Vm_prev, Vector<double> &rhsVm){
 	CoeffMatrix.CG(Vm, rhsVm, 1000, 0.01);
 }
 
-void performDiffusionStepCN(DIA<double> &CoeffMatrix, DIA<double> &CoeffMatrixRhs, Vector<double> &Vm, Vector<double> &Vmprev, Vector<double> &rhsVm){
+void performDiffusionStepCN(DIA<double> &CoeffMatrix, DIA<double> &CoeffMatrixRhs, Vector<double> &Vm, Vector<double> &Vm_prev, Vector<double> &rhsVm){
 	rhsVm += CoeffMatrixRhs*Vm;
 	CoeffMatrix.CG(Vm, rhsVm, 1000, 0.01);
 }
 
-void performDiffusionStepBDF2(DIA<double> &CoeffMatrix, DIA<double> &CoeffMatrixRhs, Vector<double> &Vm, Vector<double> &Vmprev, Vector<double> &rhsVm){
-	rhsVm += (4.0/3.0)*Vm - (1.0/3.0)*Vmprev;
+void performDiffusionStepBDF2(DIA<double> &CoeffMatrix, DIA<double> &CoeffMatrixRhs, Vector<double> &Vm, Vector<double> &Vm_prev, Vector<double> &rhsVm){
+	rhsVm += (4.0/3.0)*Vm - (1.0/3.0)*Vm_prev;
 	CoeffMatrix.CG(Vm, rhsVm, 1000, 0.01);
 }
 
-void performDiffusionStepAM2(DIA<double> &CoeffMatrix, DIA<double> &CoeffMatrixRhs, Vector<double> &Vm, Vector<double> &Vmprev, Vector<double> &rhsVm){
-	rhsVm += CoeffMatrixRhs*((2.0/3.0)*Vm-(1.0/12.0)*Vmprev);
+void performDiffusionStepAM2(DIA<double> &CoeffMatrix, DIA<double> &CoeffMatrixRhs, Vector<double> &Vm, Vector<double> &Vm_prev, Vector<double> &rhsVm){
+	rhsVm += CoeffMatrixRhs*((2.0/3.0)*Vm-(1.0/12.0)*Vm_prev);
 	CoeffMatrix.CG(Vm, rhsVm, 1000, 0.01);
 }
 
-void performDiffusionStepMS2(DIA<double> &CoeffMatrix, DIA<double> &CoeffMatrixRhs, Vector<double> &Vm, Vector<double> &Vmprev, Vector<double> &rhsVm){
-	rhsVm += CoeffMatrixRhs*((4.0/3.0)*Vm+(1.0/3.0)*Vmprev) + Vmprev;
+void performDiffusionStepMS2(DIA<double> &CoeffMatrix, DIA<double> &CoeffMatrixRhs, Vector<double> &Vm, Vector<double> &Vm_prev, Vector<double> &rhsVm){
+	rhsVm += CoeffMatrixRhs*((4.0/3.0)*Vm+(1.0/3.0)*Vm_prev) + Vm_prev;
 	CoeffMatrix.CG(Vm, rhsVm, 1000, 0.01);
 }
 
@@ -76,13 +76,17 @@ void timeIntMono_nonadaptive(System &sys){
 			
 	Vector<double> y(0.0,stateSize);
 	sys.calcInitialCondition(y.data);
-	Vector<double> yprev(y);
+	Vector<double> y_prev(y);
+	//Cellular model
 	Vector<double> a(0.0,stateSize);
 	Vector<double> b(0.0,stateSize);
-	//Vector<double> bprev(b);
+	//Diffusionstep
 	Vector<double> Vm(y, 0, n);
-	Vector<double> Vmprev(yprev,0,n);
+	Vector<double> Vm_prev(y_prev,0,n);
 	Vector<double> rhsVm(0.0, n);
+	//Observer
+	Vector<double> dVmdt(b, 0, n);
+	Vector<double> dVmdt_prev(dVmdt);
 	Vector<double> temp(0.0,stateSize);
 	
 	double tb = sys.gettb(); 
@@ -92,18 +96,22 @@ void timeIntMono_nonadaptive(System &sys){
 	double delta_double = 1e-1;
 	
 	double *restrict py = y.data;
+	double *restrict py_prev = y_prev.data;
+	//Cellular model
 	double *restrict py_Vm = (VmVecOrdered && modelVarsVecOrdered) ? py+N : py;
 	double *restrict py_vars = (VmVecOrdered && modelVarsVecOrdered) ? (py+N+VECLEN) : py+N;
-	double *restrict pyprev = yprev.data;
 	double *restrict pa = a.data;
 	double *restrict pa_vars = (VmVecOrdered && modelVarsVecOrdered) ? (pa+N+VECLEN) : pa+N;
 	double *restrict pb = b.data;
 	double *restrict pf_Vm = (VmVecOrdered && modelVarsVecOrdered) ? pb+N : pb;
 	double *restrict pb_vars = (VmVecOrdered && modelVarsVecOrdered) ? (pb+N+VECLEN) : pb+N;
 	double *restrict pf_vars = pb_vars;
+	//Diffusionstep
 	double *restrict pVm = Vm.data;
 	double *restrict prhsVm = rhsVm.data;
-	double *restrict pdVmdt = pb;
+	//Observer
+	double *restrict pdVmdt = dVmdt.data;
+	double *restrict pdVmdt_prev = dVmdt_prev.data;
 	double *restrict ptemp = temp.data;
 	
 	bool addVmToRhs;
@@ -111,7 +119,7 @@ void timeIntMono_nonadaptive(System &sys){
 	double CoeffMatrixRhsAddDiagScal = 0.0;
 	double CoeffMatrixFac = 0.0;
 	double CoeffMatrixRhsFac = 0.0;
-	void (*performDiffusionStep)(DIA<double> &CoeffMatrix, DIA<double> &CoeffMatrixRhs, Vector<double> &Vm, Vector<double> &Vmprev, Vector<double> &rhsVm);
+	void (*performDiffusionStep)(DIA<double> &CoeffMatrix, DIA<double> &CoeffMatrixRhs, Vector<double> &Vm, Vector<double> &Vm_prev, Vector<double> &rhsVm);
 	if(timeIntSchemeDiffusion == "FE"){
 		addVmToRhs = false;
 		CoeffMatrixRhsAddDiagScal = 1.0;
@@ -167,15 +175,16 @@ void timeIntMono_nonadaptive(System &sys){
 			model.f_Vm_vec(&pVm[k], &py_vars[k*kStride], &pdVmdt[k], t, varStride);
 		}
 				
-		finished = finished || sys.obs(pyprev, py, pdVmdt, ptemp, t, dt);
+		finished = finished || sys.obs(py_prev, py, pdVmdt_prev, pdVmdt, ptemp, t, dt);
 	}
 	for(t=tb+dt;t<(te+dt/10)&&!finished;t+=dt){
 		std::cout<<"t="<<t<<" te="<<te<<std::endl;
 		
 		/*omp*/tc=omp_get_wtime();
-		yprev = y;
+		y_prev = y;
+		dVmdt_prev = dVmdt;
 		grid.getRhsMono(pVm, prhsVm, t, dt, addVmToRhs);	
-		performDiffusionStep(CoeffMatrix, CoeffMatrixRhs, Vm, Vmprev, rhsVm);
+		performDiffusionStep(CoeffMatrix, CoeffMatrixRhs, Vm, Vm_prev, rhsVm);
 		grid.correctVm(pVm);
 		#pragma omp parallel for
 		#pragma ivdep
@@ -221,13 +230,13 @@ void timeIntMono_nonadaptive(System &sys){
 			}
 		}
 		
-		finished = sys.obs(pyprev, py, pdVmdt, ptemp, t, dt);
+		finished = sys.obs(py_prev, py, pdVmdt_prev, pdVmdt, ptemp, t, dt);
 		/*omp*/tc=omp_get_wtime()-tc;
 		/*omp*/std::cerr<<"ImplStep:"<<tc*1000<<"ms"<<std::endl;
 	}
 
 	t = finished ? t : te;
-	sys.obs_end(pyprev, py, pdVmdt, ptemp, t, dt);
+	sys.obs_end(py_prev, py, pdVmdt_prev, pdVmdt, ptemp, t, dt);
 	
 	/*VecResetArray(pets_Vm);
 	VecResetArray(pets_rhsVm);
@@ -260,14 +269,19 @@ void timeIntMono_adaptive(System &sys){
 	Vector<double> y2(0.0,stateSize);
 	Vector<double> y_last(0.0,stateSize);
 	sys.calcInitialCondition(y.data);
-	Vector<double> yprev(y);
+	Vector<double> y_prev(y);
+	//Cellular Model
 	Vector<double> a(0.0,stateSize);
 	Vector<double> b(0.0,stateSize);
 	Vector<double> a_last(0.0,stateSize);
 	Vector<double> b_last(0.0,stateSize);
+	//Diffusionstep
 	Vector<double> Vm(y, 0, n);
-	Vector<double> Vmprev(yprev,0,n);
+	Vector<double> Vm_prev(y_prev,0,n);
 	Vector<double> rhsVm(0.0, n);
+	//Observer
+	Vector<double> dVmdt(b, 0, n);
+	Vector<double> dVmdt_prev(dVmdt);
 	Vector<double> temp(0.0,stateSize);
 	
 	double tb = sys.gettb(); 
@@ -281,6 +295,8 @@ void timeIntMono_adaptive(System &sys){
 	std::vector<double> dt0Adap(N/VECLEN, max_dtAdap);
 	
 	double *restrict py = y.data;
+	double *restrict py_prev = y_prev.data;
+	//Cellular model
 	double *restrict py_Vm = (VmVecOrdered && modelVarsVecOrdered) ? py+N : py;
 	double *restrict py_vars = (VmVecOrdered && modelVarsVecOrdered) ? (py+N+VECLEN) : py+N;
 	double *restrict py2 = y2.data;
@@ -289,7 +305,6 @@ void timeIntMono_adaptive(System &sys){
 	double *restrict py_last = y_last.data;
 	double *restrict py_Vm_last = (VmVecOrdered && modelVarsVecOrdered) ? py_last+N : py;
 	double *restrict py_vars_last = (VmVecOrdered && modelVarsVecOrdered) ? (py_last+N+VECLEN) : py+N;
-	double *restrict pyprev = yprev.data;
 	double *restrict pa = a.data;
 	double *restrict pa_vars = (VmVecOrdered && modelVarsVecOrdered) ? (pa+N+VECLEN) : pa+N;
 	double *restrict pa_last = a_last.data;
@@ -302,9 +317,12 @@ void timeIntMono_adaptive(System &sys){
 	double *restrict pf_Vm_last = (VmVecOrdered && modelVarsVecOrdered) ? pb_last+N : pb;
 	double *restrict pb_vars_last = (VmVecOrdered && modelVarsVecOrdered) ? (pb_last+N+VECLEN) : pb+N;
 	double *restrict pf_vars_last = pb_vars_last;
+	//Diffusionstep
 	double *restrict pVm = Vm.data;
 	double *restrict prhsVm = rhsVm.data;
-	double *restrict pdVmdt = pb;
+	//Observer
+	double *restrict pdVmdt = dVmdt.data;
+	double *restrict pdVmdt_prev = dVmdt_prev.data;
 	double *restrict ptemp = temp.data;
 	
 	bool addVmToRhs;
@@ -312,7 +330,7 @@ void timeIntMono_adaptive(System &sys){
 	double CoeffMatrixRhsAddDiagScal = 0.0;
 	double CoeffMatrixFac = 0.0;
 	double CoeffMatrixRhsFac = 0.0;
-	void (*performDiffusionStep)(DIA<double> &CoeffMatrix, DIA<double> &CoeffMatrixRhs, Vector<double> &Vm, Vector<double> &Vmprev, Vector<double> &rhsVm);
+	void (*performDiffusionStep)(DIA<double> &CoeffMatrix, DIA<double> &CoeffMatrixRhs, Vector<double> &Vm, Vector<double> &Vm_prev, Vector<double> &rhsVm);
 	if(timeIntSchemeDiffusion == "FE"){
 		addVmToRhs = false;
 		CoeffMatrixRhsAddDiagScal = 1.0;
@@ -385,16 +403,16 @@ void timeIntMono_adaptive(System &sys){
 			model.f_Vm_vec(&pVm[k], &py_vars[k*kStride], &pdVmdt[k], t, varStride);
 		}
 				
-		finished = finished || sys.obs(pyprev, py, pdVmdt, ptemp, t, dt);
+		finished = finished || sys.obs(py_prev, py, pdVmdt_prev, pdVmdt, ptemp, t, dt);
 	}
 	for(t=tb+dt;t<(te+dt/10)&&!finished;t+=dt){
 		std::cout<<"t="<<t<<" te="<<te<<std::endl;
 		
 		/*omp*/tc=omp_get_wtime();
-		yprev = y;
+		y_prev = y;
 		//double tc2=omp_get_wtime();
 		grid.getRhsMono(pVm, prhsVm, t, dt, addVmToRhs);
-		performDiffusionStep(CoeffMatrix, CoeffMatrixRhs, Vm, Vmprev, rhsVm);
+		performDiffusionStep(CoeffMatrix, CoeffMatrixRhs, Vm, Vm_prev, rhsVm);
 		//KSPSolve(ksp, pets_rhsVm, pets_Vm);
 		//int its;
 		//KSPGetIterationNumber(ksp,&its);
@@ -402,7 +420,7 @@ void timeIntMono_adaptive(System &sys){
 		///*omp*/std::cerr<<"ImplStep:"<<tc2*1000<<"ms its:"<<its<<std::endl;
 		grid.correctVm(pVm);
 		
-		yprev = y;
+		y_prev = y;
 		#pragma omp parallel for
 		#pragma ivdep
 		for(int k=0;k<N;k+=VECLEN){
@@ -564,10 +582,10 @@ void timeIntMono_adaptive(System &sys){
 		/*omp*/tc=omp_get_wtime()-tc;
 		/*omp*/std::cerr<<"ImplStep:"<<tc*1000<<"ms"<<std::endl;
 
-		finished = sys.obs(pyprev, py, pdVmdt, ptemp, t, dt);
+		finished = sys.obs(py_prev, py, pdVmdt_prev, pdVmdt, ptemp, t, dt);
 	}
 	t = finished ? t : te;
-	sys.obs_end(pyprev, py, pdVmdt, ptemp, t, dt);
+	sys.obs_end(py_prev, py, pdVmdt_prev, pdVmdt, ptemp, t, dt);
 	
 	/*VecResetArray(pets_Vm);
 	VecResetArray(pets_rhsVm);

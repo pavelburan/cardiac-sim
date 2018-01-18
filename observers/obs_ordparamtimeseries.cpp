@@ -47,7 +47,7 @@ void Obs_ordParamTimeSeries::init(){
 	cfg.addCleanFile(fileName, 2);
 }
 
-bool Obs_ordParamTimeSeries::observe(double *__restrict__ y_prev, double *__restrict__ y, double *__restrict__ dVmdt, double *__restrict__ temp, double t, double timeStep, bool isResumeAbleStep){
+bool Obs_ordParamTimeSeries::observe(double *__restrict__ y_prev, double *__restrict__ y, double *__restrict__ dVmdt_prev, double *__restrict__ dVmdt, double *__restrict__ temp, double t, double timeStep, bool isResumeAbleStep){
 	if(t > t_next - Eps::t()){
 		timeSteps.push_back(t_next);
 		#pragma omp parallel for
@@ -63,7 +63,7 @@ bool Obs_ordParamTimeSeries::observe(double *__restrict__ y_prev, double *__rest
 	return false;
 }
 
-void Obs_ordParamTimeSeries::finalize(double *__restrict__ y_prev, double *__restrict__ y, double *__restrict__ dVmdt, double *__restrict__ temp, double t){
+void Obs_ordParamTimeSeries::finalize(double *__restrict__ y_prev, double *__restrict__ y, double *__restrict__ dVmdt_prev, double *__restrict__ dVmdt, double *__restrict__ temp, double t){
 	std::string fileName = cfg.getPlotFolderSubRepeatSavePrefixFileName("ordParamTimeSeries.bin");
 	saveOrderParameters(fileName);
 }

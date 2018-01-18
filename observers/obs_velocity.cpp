@@ -31,7 +31,7 @@ void Obs_velocity::init(){
 	n = 0;
 }
 
-bool Obs_velocity::observe(double *__restrict__ y_prev, double *__restrict__ y, double *__restrict__ dVmdt, double *__restrict__ temp, double t, double timeStep, bool isResumeAbleStep){
+bool Obs_velocity::observe(double *__restrict__ y_prev, double *__restrict__ y, double *__restrict__ dVmdt_prev, double *__restrict__ dVmdt, double *__restrict__ temp, double t, double timeStep, bool isResumeAbleStep){
 	double t0 = system.gett0();
 	#pragma omp parallel for
 	for(int i=0;i<tBeg.size();i++){
@@ -60,7 +60,7 @@ bool Obs_velocity::observe(double *__restrict__ y_prev, double *__restrict__ y, 
 
 }
 
-void Obs_velocity::finalize(double *__restrict__ y_prev, double *__restrict__ y, double *__restrict__ dVmdt, double *__restrict__ temp, double t){
+void Obs_velocity::finalize(double *__restrict__ y_prev, double *__restrict__ y, double *__restrict__ dVmdt_prev, double *__restrict__ dVmdt, double *__restrict__ temp, double t){
 	double t0 = system.gett0();
 	double tBegSum = 0.0;
 	double tEndSum = 0.0;

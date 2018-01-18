@@ -16,7 +16,7 @@ void Obs_activationTime::init(){
 	tau = std::numeric_limits<double>::max();
 }
 
-bool Obs_activationTime::observe(double *__restrict__ y_prev, double *__restrict__ y, double *__restrict__ dVmdt, double *__restrict__ temp, double t, double timeStep, bool isResumeAbleStep){
+bool Obs_activationTime::observe(double *__restrict__ y_prev, double *__restrict__ y, double *__restrict__ dVmdt_prev, double *__restrict__ dVmdt, double *__restrict__ temp, double t, double timeStep, bool isResumeAbleStep){
 	std::vector<bool> isPointOfFraction(grid.getn(), false);
 	#pragma omp parallel for
 	for(int i=0;i<grid.getn();i++){
@@ -29,7 +29,7 @@ bool Obs_activationTime::observe(double *__restrict__ y_prev, double *__restrict
 	return false;
 }
 
-void Obs_activationTime::finalize(double *__restrict__ y_prev, double *__restrict__ y, double *__restrict__ dVmdt, double *__restrict__ temp, double t){
+void Obs_activationTime::finalize(double *__restrict__ y_prev, double *__restrict__ y, double *__restrict__ dVmdt_prev, double *__restrict__ dVmdt, double *__restrict__ temp, double t){
 	std::string fileName = cfg.getPlotFolderSubTimeSavePrefixFileName("activationTime.bin");
 	std::ofstream file( fileName.c_str(), std::ios::app );
 	if( file.is_open() ){

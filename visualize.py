@@ -67,6 +67,8 @@ Y = fromfile(filename2D)
 print Y.shape
 YY = Y.reshape(len(Y)/(nx*ny),ny,nx)
 zz = YY[0,:];
+zz = (zz+84.0)/85.7
+zz = -84.0 + zz*107.125
 title = 'Plot%s t=%sms' % (num,tp0+num*dtp)
 p.pcolormesh(xx, yy, zz)
 p.xlabel('x in mm')

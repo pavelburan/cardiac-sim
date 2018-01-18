@@ -23,8 +23,8 @@ public:
 	
 	void readParams();
 	void init();
-	bool observe(double *y_prev, double *y, double *dVmdt, double *temp, double t, double timeStep, bool isResumeAbleStep);
-	void finalize(double *y_prev, double *y, double *dVmdt, double *temp, double t){}
+	bool observe(double *y_prev, double *y, double *dVmdt_prev, double *dVmdt, double *temp, double t, double timeStep, bool isResumeAbleStep);
+	void finalize(double *y_prev, double *y, double *dVmdt_prev, double *dVmdt, double *temp, double t){}
 	
 protected:
 	double t0;

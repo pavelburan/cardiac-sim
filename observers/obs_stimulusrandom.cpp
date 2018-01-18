@@ -24,7 +24,7 @@ void Obs_stimulusRandom::init(){
 	}
 }
 
-bool Obs_stimulusRandom::observe(double *__restrict__ y_prev, double *__restrict__ y, double *__restrict__ dVmdt, double *__restrict__ temp, double t, double timeStep, bool isResumeAbleStep){
+bool Obs_stimulusRandom::observe(double *__restrict__ y_prev, double *__restrict__ y, double *__restrict__ dVmdt_prev, double *__restrict__ dVmdt, double *__restrict__ temp, double t, double timeStep, bool isResumeAbleStep){
 	if(t > t0-Eps::t() && t < t0+Eps::t()){
 		for(int i=0;i<n;i++)
 			grid.setExcitedState(y, posIndices[i]);

@@ -45,7 +45,7 @@ void Obs_notTerminated::init(){
 	}
 }
 
-bool Obs_notTerminated::observe(double *__restrict__ y_prev, double *__restrict__ y, double *__restrict__ dVmdt, double *__restrict__ temp, double t, double timeStep, bool isResumeAbleStep){
+bool Obs_notTerminated::observe(double *__restrict__ y_prev, double *__restrict__ y, double *__restrict__ dVmdt_prev, double *__restrict__ dVmdt, double *__restrict__ temp, double t, double timeStep, bool isResumeAbleStep){
 	if(t > tSave-Eps::t() && t < tSave+Eps::t()){
 		std::vector<bool> isPointOfFraction(grid.getn(), true);
 		#pragma omp parallel for //simd
@@ -67,7 +67,7 @@ bool Obs_notTerminated::observe(double *__restrict__ y_prev, double *__restrict_
 		return false;
 }
 
-void Obs_notTerminated::finalize(double *__restrict__ y_prev, double *__restrict__ y, double *__restrict__ dVmdt, double *__restrict__ temp, double t){
+void Obs_notTerminated::finalize(double *__restrict__ y_prev, double *__restrict__ y, double *__restrict__ dVmdt_prev, double *__restrict__ dVmdt, double *__restrict__ temp, double t){
 	std::string fileName = cfg.getPlotFolderSubTimeSavePrefixFileName("notTerminated.txt");
 	std::ofstream file( fileName.c_str(), std::ios::app );
 	if( file.is_open() ){

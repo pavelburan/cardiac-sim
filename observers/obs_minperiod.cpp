@@ -28,7 +28,7 @@ void Obs_minPeriod::init(){
 	Ts.push_back(T);
 }
 
-bool Obs_minPeriod::observe(double *__restrict__ y_prev, double *__restrict__ y, double *__restrict__ dVmdt, double *__restrict__ temp, double t, double timeStep, bool isResumeAbleStep){
+bool Obs_minPeriod::observe(double *__restrict__ y_prev, double *__restrict__ y, double *__restrict__ dVmdt_prev, double *__restrict__ dVmdt, double *__restrict__ temp, double t, double timeStep, bool isResumeAbleStep){
 	double eps = timeStep/100.0;
 	int size = tReceive.size();
 	double thresh = grid.getVmThresh(posIndex);
@@ -59,7 +59,7 @@ bool Obs_minPeriod::observe(double *__restrict__ y_prev, double *__restrict__ y,
 	return false;
 }
 
-void Obs_minPeriod::finalize(double *__restrict__ y_prev, double *__restrict__ y, double *__restrict__ dVmdt, double *__restrict__ temp, double t){
+void Obs_minPeriod::finalize(double *__restrict__ y_prev, double *__restrict__ y, double *__restrict__ dVmdt_prev, double *__restrict__ dVmdt, double *__restrict__ temp, double t){
 	int size = tReceive.size();
 	if(size < 3)
 		cfg.print("Not finished");

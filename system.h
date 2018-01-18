@@ -35,8 +35,8 @@ public:
 	void initObservers();
 	void calcInitialCondition(double *y0);
 
-	bool obs(double *y_prev, double *y, double *Iion, double *temp, double t, double dt);
-	void obs_end(double *y_prev, double *y, double *Iion, double *temp, double t, double dt);
+	bool obs(double *y_prev, double *y, double *dVmdt_prev, double *dVmdt, double *temp, double t, double dt);
+	void obs_end(double *y_prev, double *y, double *dVmdt_prev, double *dVmdt, double *temp, double t, double dt);
 	void loadState(double *y, const std::string fileName, bool onlyVm=false) const;
 	void loadInitialState(double *y0, const std::string fileName) const;
 	void saveState(const double *y, const std::string fileName, bool onlyVm=false) const;

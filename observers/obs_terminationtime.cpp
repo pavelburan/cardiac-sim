@@ -13,23 +13,7 @@ void Obs_terminationTime::readParams(){
 	cfg.readInto(timeAfterTermination, "timeAfterTermination");
 }
 
-/*bool Obs_terminationTime::observe(double *__restrict__ y_prev, double *__restrict__ y, double *__restrict__ dVmdt, double *__restrict__ temp, double t, double timeStep, bool isResumeAbleStep){
-	double eps = std::numeric_limits< double >::epsilon();
-	std::vector<bool> isPointOfFraction(grid.getn(), true);
-	#pragma omp parallel for
-	#pragma ivdep
-	for(int i=0;i<grid.getn();i++){
-		isPointOfFraction[i] = (dVmdt[i] > grid.getdVmdtThresh(i) && y[i] > grid.getVmThresh(i))? true : false;
-	}
-	if(grid.getFraction(isPointOfFraction) < eps && terminationTime > system.gette()){
-		terminationTime = t;
-		if(finishAfterTermination)
-			return true;
-	}
-	return false;
-}*/
-
-bool Obs_terminationTime::observe(double *__restrict__ y_prev, double *__restrict__ y, double *__restrict__ dVmdt, double *__restrict__ temp, double t, double timeStep, bool isResumeAbleStep){
+bool Obs_terminationTime::observe(double *__restrict__ y_prev, double *__restrict__ y, double *__restrict__ dVmdt_prev, double *__restrict__ dVmdt, double *__restrict__ temp, double t, double timeStep, bool isResumeAbleStep){
 	double eps = std::numeric_limits< double >::epsilon();
 	if(terminationTime > system.gette()){
 		std::vector<bool> isPointOfFraction(grid.getn(), true);
@@ -47,7 +31,7 @@ bool Obs_terminationTime::observe(double *__restrict__ y_prev, double *__restric
 		return false;
 }
 
-void Obs_terminationTime::finalize(double *__restrict__ y_prev, double *__restrict__ y, double *__restrict__ dVmdt, double *__restrict__ temp, double t){
+void Obs_terminationTime::finalize(double *__restrict__ y_prev, double *__restrict__ y, double *__restrict__ dVmdt_prev, double *__restrict__ dVmdt, double *__restrict__ temp, double t){
 	std::string fileName = cfg.getPlotFolderSubTimeSavePrefixFileName(cfg.getSubConfigPrefix()+std::string("terminationTime.txt"));
 	std::ofstream file( fileName.c_str(), std::ios::app );
 	if( file.is_open() ){

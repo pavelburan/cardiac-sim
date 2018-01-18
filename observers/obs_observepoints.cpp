@@ -43,7 +43,7 @@ void Obs_observePoints::init(){
 	cfg.addCleanFile(fileName, 1);
 }
 
-bool Obs_observePoints::observe(double *__restrict__ y_prev, double *__restrict__ y, double *__restrict__ dVmdt, double *__restrict__ temp, double t, double timeStep, bool isResumeAbleStep){
+bool Obs_observePoints::observe(double *__restrict__ y_prev, double *__restrict__ y, double *__restrict__ dVmdt_prev, double *__restrict__ dVmdt, double *__restrict__ temp, double t, double timeStep, bool isResumeAbleStep){
 	#pragma omp parallel for
 	for(int i=0;i<posIndices.size();i++)
 		obsPointsData[i].push_back(y[posIndices[i]]);
@@ -54,7 +54,7 @@ bool Obs_observePoints::observe(double *__restrict__ y_prev, double *__restrict_
 	return false;
 }
 
-void Obs_observePoints::finalize(double *__restrict__ y_prev, double *__restrict__ y, double *__restrict__ dVmdt, double *__restrict__ temp, double t){
+void Obs_observePoints::finalize(double *__restrict__ y_prev, double *__restrict__ y, double *__restrict__ dVmdt_prev, double *__restrict__ dVmdt, double *__restrict__ temp, double t){
 	std::string fileName = cfg.getPlotFolderSubRepeatSavePrefixFileName("observePoints.bin");
 	saveObsPoints(fileName);
 }

@@ -11,7 +11,7 @@
 #include "obs_plotatfixedtimes.h"
 #include "obs_minpaceperiod.h"
 #include "obs_minpaceperiod0.h"
-#include "obs_activatedhotspots.h"
+#include "obs_hotspots.h"
 #include "../system.h"
 #include <iostream>
 
@@ -41,7 +41,7 @@ Observer* Observer::newObserver(const std::string& observerType, System& system,
 	if(observerType == "MinPacePeriod0")
 		return new Obs_minPacePeriod0(system, configFileName, keyPrefix);
 	if(observerType == "ActivatedHotSpots")
-		return new Obs_activatedHotSpots(system, configFileName, keyPrefix);
+		return new Obs_hotSpots(system, configFileName, keyPrefix);
 	else{
 		std::cerr<<"Error in "<< __FUNCTION__ << " in " << __FILE__ << " at line " << __LINE__ << std::endl;
 		std::cerr<<"observerType="<<observerType<<" existiert nicht!"<<std::endl;

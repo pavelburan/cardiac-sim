@@ -25,7 +25,7 @@ void Obs_stimulus::init(){
 	posIndices = grid.getPosIndicesVolume(xi0, dxi, eta0, deta, zeta0, dzeta);
 }
 
-bool Obs_stimulus::observe(double *__restrict__ y_prev, double *__restrict__ y, double *__restrict__ dVmdt, double *__restrict__ temp, double t, double timeStep, bool isResumeAbleStep){
+bool Obs_stimulus::observe(double *__restrict__ y_prev, double *__restrict__ y, double *__restrict__ dVmdt_prev, double *__restrict__ dVmdt, double *__restrict__ temp, double t, double timeStep, bool isResumeAbleStep){
 	if(t > tLast-Eps::t() && t < te+Eps::t()){
 		grid.setExcitedState(y, posIndices);
 		tLast += dt;

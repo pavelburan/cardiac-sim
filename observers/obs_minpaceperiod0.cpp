@@ -21,7 +21,7 @@ void Obs_minPacePeriod0::init(){
 	efield.feedback(system.gett0(), tCheck, T);
 }
 
-bool Obs_minPacePeriod0::observe(double *__restrict__ y_prev, double *__restrict__ y, double *__restrict__ dVmdt, double *__restrict__ temp, double t, double timeStep, bool isResumeAbleStep){
+bool Obs_minPacePeriod0::observe(double *__restrict__ y_prev, double *__restrict__ y, double *__restrict__ dVmdt_prev, double *__restrict__ dVmdt, double *__restrict__ temp, double t, double timeStep, bool isResumeAbleStep){
 	if(t >= tCheck-Eps::t()){
 		std::vector<bool> isPointOfFraction(grid.getn(), false);
 		#pragma omp parallel for
@@ -46,7 +46,7 @@ bool Obs_minPacePeriod0::observe(double *__restrict__ y_prev, double *__restrict
 	return false;
 }
 
-void Obs_minPacePeriod0::finalize(double *__restrict__ y_prev, double *__restrict__ y, double *__restrict__ dVmdt, double *__restrict__ temp, double t){
+void Obs_minPacePeriod0::finalize(double *__restrict__ y_prev, double *__restrict__ y, double *__restrict__ dVmdt_prev, double *__restrict__ dVmdt, double *__restrict__ temp, double t){
 	std::string fileName = cfg.getPlotFolderSubTimeSavePrefixFileName("minPacePeriod0.txt");
 	std::ofstream file( fileName.c_str(), std::ios::app );
 	if( file.is_open() ){
