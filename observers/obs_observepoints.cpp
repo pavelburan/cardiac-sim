@@ -15,7 +15,7 @@ void Obs_observePoints::readParams(){
 
 void Obs_observePoints::init(){
 	std::vector<double> vec;
-	Configuration::stringAsVector(vec, fixedObsPoints);
+	cfg.stringAsVector(vec, fixedObsPoints);
 	int dim = grid.getDim();
 	int nFixedObsPoints = vec.size() / (dim);
 	posIndices.resize(nFixedObsPoints+nRandObsPoints);

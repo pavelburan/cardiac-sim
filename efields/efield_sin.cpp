@@ -11,7 +11,7 @@ void Efield_sin::readEfieldParams(){
 }
 
 double Efield_sin::E(double t)const{
-	return (t >= tbeg-Eps::t() && t <= tend+Eps::t()) ? (E0*sin(2*M_PI/tPeriod*(t-tbeg+toff)) + Eoff) : 0.0 ;
+	return (t >= tbeg-Eps::t() && t <= tend-Eps::t()) ? (E0*sin(2*M_PI/tPeriod*(t-tbeg+toff)) + Eoff) : 0.0 ;
 }
 
 void Efield_sin::feedback(double newtbeg, double newtend, double newtPeriod){

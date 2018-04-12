@@ -2,13 +2,17 @@
 #include "../system.h"
 #include "../efields/efield.h"
 #include "../grids/grid.h"
+#include "../models/model.h"
 #include <limits>
 #include <algorithm>
 
 
 Obs_hotSpots::Obs_hotSpots(System& system, const std::string& configFileName, const std::string& keyPrefix):Observer(system,configFileName,keyPrefix),
-														hetPosIndices(), hetBorder1PosIndices(), hetBorder2PosIndices(), hetBorder3PosIndices(),hetBorder2NeighboursBorder1PosIndices(), hetBorder2NeighboursBorder3PosIndices(),
-														maxDistance(0.0), checkDt(0.0), hetActivationStatus(), hetActivationTime(), dt_excitation(0.0), t_next_excitation(0.0), maxExcitationTimes(0.0), hetExcitationTimes(){
+														maxDistance(0.0), checkDt(0.0), hetPosIndices(), hetBorder1PosIndices(), hetBorder2PosIndices(), hetBorder3PosIndices(),hetBorder2NeighboursBorder1PosIndices(), hetBorder2NeighboursBorder3PosIndices(),
+														checkActivatedHotSpots(false), hetActivationStatus(), hetActivationTime(),
+														checkActivationTime(false), activationRatio(0.0), startTimeE(0.0), excitablePosIndices(), excitablePosIndicesList(), activationTime(0.0),
+														checkExcitedHotSpots(false), minT_excitation(0.0), dt_check_excitation(0.0), t_next_check_excitation(0.0), maxExcitationTimes(0), hetExcitationStatus(), hetExcitationTime(), hetExcitationTimes(),
+														checkExcitedPoints(false), hetBorderLevel(0), maxAnzPoints(0), pointPosindices(), pointExcitationTimes(){
 }
 
 void Obs_hotSpots::rekursivRemoveClusterElement(std::vector<int>& posIndicesHet, std::list<int>& posIndicesHetList, std::vector< bool >& isHet, std::vector< std::list<int>::iterator >& hetIterators, std::list<int>::iterator it){
@@ -30,8 +34,20 @@ void Obs_hotSpots::rekursivRemoveClusterElement(std::vector<int>& posIndicesHet,
 void Obs_hotSpots::readParams(){
 	cfg.readInto(maxDistance, "maxDistance");
 	cfg.readInto(checkDt, "checkDt");
+	//Activated Hot Spots
+	cfg.readInto(checkActivatedHotSpots, "checkActivatedHotSpots");
+	//Activation Time
+	cfg.readInto(checkActivationTime, "checkActivationTime");
+	cfg.readInto(activationRatio, "activationRatio");
+	//Excited Hot Spots
+	cfg.readInto(checkExcitedHotSpots, "checkExcitedHotSpots");
+	cfg.readInto(minT_excitation, "minT_excitation");
+	cfg.readInto(dt_check_excitation, "dt_check_excitation");
 	cfg.readInto(maxExcitationTimes, "maxExcitationTimes");
-	
+	//Excited Points
+	cfg.readInto(checkExcitedPoints, "checkExcitedPoints");
+	cfg.readInto(hetBorderLevel, "hetBorderLevel");
+	cfg.readInto(maxAnzPoints, "maxAnzPoints");
 }
 
 void Obs_hotSpots::init(){
@@ -135,13 +151,67 @@ void Obs_hotSpots::init(){
 		
 		cluster++;
 	}
+	//Activated Hot Spots
+	if(checkActivatedHotSpots == true){
+		hetActivationStatus.resize(hetBorder1PosIndices.size(), -1);
+		hetActivationTime.resize(hetBorder1PosIndices.size(), std::numeric_limits<double>::max());
+	}
 	
-	hetActivationStatus.resize(hetBorder1PosIndices.size(), -1);
-	hetActivationTime.resize(hetBorder1PosIndices.size(), 0.0);
+	//Activation Time
+	if(checkActivationTime == true){
+		startTimeE = std::numeric_limits<double>::max();
+		activationTime = std::numeric_limits<double>::max();
+	}
 	
-	dt_excitation = 1.0;
-	t_next_excitation = system.gettb();
-	hetExcitationTimes.resize(hetBorder1PosIndices.size(), std::vector<double>(maxExcitationTimes, std::numeric_limits<double>::min()));
+	//Excited Hot Spots
+	if(checkExcitedHotSpots){
+		dt_check_excitation = 1.0;
+		t_next_check_excitation = system.gettb();
+		hetExcitationStatus.resize(hetBorder1PosIndices.size(), -1);
+		hetExcitationTime.resize(hetBorder1PosIndices.size(), std::numeric_limits<double>::max());
+		hetExcitationTimes.resize(hetBorder1PosIndices.size());
+	}
+	
+	//Excited Points
+	if(checkExcitedPoints){
+		std::vector<bool> tempHetPossiblePoint(system.getn(),true);
+		int nPossible = system.getn();
+		for(int i=0;i<grid.getn();i++){
+			if(grid.getIsHet(i)){
+				tempHetPossiblePoint[i] = false;
+				nPossible--;
+			}
+		}
+		for(int i=0;i<hetActivationStatus.size();i++){
+			for(int j=0;j<hetBorder1PosIndices[i].size();j++){
+				int posIndex = hetBorder1PosIndices[i][j];
+				if(tempHetPossiblePoint[posIndex] == true && hetBorderLevel >= 1){
+					tempHetPossiblePoint[posIndex] = false;
+					nPossible--;
+				}
+			}
+			for(int j=0;j<hetBorder2PosIndices[i].size();j++){
+				int posIndex = hetBorder2PosIndices[i][j];
+				if(tempHetPossiblePoint[posIndex] == true && hetBorderLevel >= 2){
+					tempHetPossiblePoint[posIndex] = false;
+					nPossible--;
+				}
+			}
+			for(int j=0;j<hetBorder3PosIndices[i].size();j++){
+				int posIndex = hetBorder3PosIndices[i][j];
+				if(tempHetPossiblePoint[posIndex] == true && hetBorderLevel >= 3){
+					tempHetPossiblePoint[posIndex] = false;
+					nPossible--;
+				}
+			}
+		}
+		pointPosindices.reserve(nPossible);
+		for(int i=0;i<grid.getn();i++){
+			if(tempHetPossiblePoint[i] == true)
+				pointPosindices.push_back(i);
+		}
+		pointExcitationTimes.resize(nPossible);
+	}
 	std::cerr<<"cluster="<<cluster<<std::endl;
 }
 
@@ -175,8 +245,13 @@ bool Obs_hotSpots::observe(double *__restrict__ y_prev, double *__restrict__ y, 
 			}	
 		}
 	}
-	*/
-	if(abs(efield.E(t)) > 0 || abs(efield.E(t-2.0*checkDt))){
+	for(int i=0;i<excitablePosIndices.size();i++){
+		int posIndex = excitablePosIndices[i];
+		y[posIndex] = -100.0;
+	}*/
+
+	//Activated Hot Spots
+	if(checkActivatedHotSpots == true && (abs(efield.E(t)) > 0 || abs(efield.E(t-2.0*checkDt)))){
 		for(int i=0;i<hetActivationStatus.size();i++){
 			if(hetActivationStatus[i] == -1){
 				for(int j=0;j<hetBorder2PosIndices[i].size();j++){
@@ -219,19 +294,19 @@ bool Obs_hotSpots::observe(double *__restrict__ y_prev, double *__restrict__ y, 
 				/*int count1 = -100;
 				for(int j=0;j<hetBorder1PosIndices[i].size();j++){
 					int posIndex = hetBorder1PosIndices[i][j];
-					if(dVmdt_prev[posIndex] > grid.getdVmdtThresh(posIndex) && y[posIndex] > grid.getVmThresh(posIndex))
+					if(dVmdt[posIndex] > grid.getdVmdtThresh(posIndex) && y[posIndex] > grid.getVmThresh(posIndex))
 						count1++;
 				}
 				int count2 = -100;
 				for(int j=0;j<hetBorder2PosIndices[i].size();j++){
 					int posIndex = hetBorder2PosIndices[i][j];
-					if(dVmdt_prev[posIndex] > grid.getdVmdtThresh(posIndex) && y[posIndex] > grid.getVmThresh(posIndex))
+					if(dVmdt[posIndex] > grid.getdVmdtThresh(posIndex) && y[posIndex] > grid.getVmThresh(posIndex))
 						count2++;
 				}*/
 				int count3 = 0;
 				for(int j=0;j<hetBorder3PosIndices[i].size();j++){
 					int posIndex = hetBorder3PosIndices[i][j];
-					if(dVmdt_prev[posIndex] > grid.getdVmdtThresh(posIndex) && y[posIndex] > grid.getVmThresh(posIndex))
+					if(dVmdt[posIndex] > grid.getdVmdtThresh(posIndex) && y[posIndex] > grid.getVmThresh(posIndex))
 						count3++;
 				}
 				if(count3 > 0)
@@ -248,44 +323,158 @@ bool Obs_hotSpots::observe(double *__restrict__ y_prev, double *__restrict__ y, 
 				for(int j=0;j<hetPosIndices[i].size();j++)
 					y[hetPosIndices[i][j]] = 0.0;
 			}
+			if(hetActivationStatus[i] == -1){
+				for(int j=0;j<hetPosIndices[i].size();j++)
+					y[hetPosIndices[i][j]] = -40.0;
+			}
 		}
 	}
-	else if(t > t_next_excitation - Eps::t()){
-		t_next_excitation += dt_excitation;
+	for(int i=0;i<hetActivationStatus.size();i++){
+		if(hetActivationStatus[i] == 1){
+			for(int j=0;j<hetPosIndices[i].size();j++)
+				y[hetPosIndices[i][j]] = 60.0;
+		}
+		if(hetActivationStatus[i] == 0){
+			for(int j=0;j<hetPosIndices[i].size();j++)
+				y[hetPosIndices[i][j]] = 0.0;
+		}
+		if(hetActivationStatus[i] == -1){
+			for(int j=0;j<hetPosIndices[i].size();j++)
+				y[hetPosIndices[i][j]] = -40.0;
+		}
+	}
+	
+	//Activation Time
+	if(checkActivationTime == true){
+		if(abs(efield.E(t+timeStep)) > 0 && startTimeE > t){
+			startTimeE = t;
+			for(int i=0;i<grid.getn();i++){
+				if(y[i] < grid.getModel(i).getRestingState(0)*0.90 && grid.getIsHet(i) == false)
+				//if(grid.isExcitable(y, dVmdt, i)  && grid.getIsHet(i) == false )
+					excitablePosIndicesList.push_back(i);
+			}
+			excitablePosIndices.reserve(excitablePosIndicesList.size());
+			std::copy(std::begin(excitablePosIndicesList), std::end(excitablePosIndicesList), std::back_inserter(excitablePosIndices));
+		}
+		if(excitablePosIndicesList.size() > 0){
+			for (std::list<int>::iterator it=excitablePosIndicesList.begin(); it!=excitablePosIndicesList.end(); ++it)
+				if(dVmdt[*it] > grid.getdVmdtThresh(*it) && y[*it] > grid.getVmThresh(*it))
+					it = excitablePosIndicesList.erase(it);
+		}
+		if(excitablePosIndices.size() > 0 && activationTime > t){
+			if((1.0 - double(excitablePosIndicesList.size())/excitablePosIndices.size()) > activationRatio)
+				activationTime = t - startTimeE;
+			}
+	}
+	
+	if(t > t_next_check_excitation - Eps::t()){
+		//Excited Hot Spots
+		if(checkExcitedHotSpots){
+			for(int i=0;i<hetExcitationTimes.size();i++){
+				if(hetExcitationStatus[i] == -1){ 
+					if(hetExcitationTimes[i].size() < maxExcitationTimes){
+						if(hetExcitationTimes[i].size() == 0 || (t-hetExcitationTime[i]) > minT_excitation){
+							for(int j=0;j<hetBorder1PosIndices[i].size();j++){
+								int posIndex = hetBorder1PosIndices[i][j];
+								if(dVmdt[posIndex] > grid.getdVmdtThresh(posIndex) && y[posIndex] > grid.getVmThresh(posIndex)){
+									hetExcitationStatus[i] = 0;
+									hetExcitationTime[i] = t;
+									break;
+								}
+							}
+						}
+					}
+				}
+				else if(hetExcitationStatus[i] == 0 && (t-hetExcitationTime[i]) > checkDt - Eps::t() ){
+					int count3 = 0;
+					for(int j=0;j<hetBorder3PosIndices[i].size();j++){
+						int posIndex = hetBorder3PosIndices[i][j];
+						if(dVmdt[posIndex] > grid.getdVmdtThresh(posIndex) && y[posIndex] > grid.getVmThresh(posIndex))
+							count3++;
+					}
+					if(count3 > 0)
+						hetExcitationTimes[i].push_back(hetExcitationTime[i]);
+					hetExcitationStatus[i] = -1;
+				}			
+			}
+		}
+		//Excited Points
+		if(checkExcitedPoints){
+			for(int i=0;i<pointPosindices.size();i++){
+				if(pointExcitationTimes[i].size() < maxExcitationTimes){
+					if(pointExcitationTimes[i].size() == 0 || (t-pointExcitationTimes[i].back()) > minT_excitation){
+						int posIndex = pointPosindices[i];
+						if(dVmdt[posIndex] > grid.getdVmdtThresh(posIndex) && y[posIndex] > grid.getVmThresh(posIndex)){
+							pointExcitationTimes[i].push_back(t);
+						}
+					}
+				}
+			}
+		}
+		
+		t_next_check_excitation += dt_check_excitation;
 	}
 	return false;
 }
 
 void Obs_hotSpots::finalize(double *__restrict__ y_prev, double *__restrict__ y, double *__restrict__ dVmdt_prev, double *__restrict__ dVmdt, double *__restrict__ temp, double t){
-	int anz = std::count(hetActivationStatus.begin(), hetActivationStatus.end(), 1);
-	int total = hetActivationStatus.size();
-	std::cerr<<"("<<anz<<"/"<<total<<")"<<std::endl;
-	std::string fileName = cfg.getPlotFolderSubTimeSavePrefixFileName("anzActivatedHotSpots.txt");
-	std::ofstream file( fileName.c_str(), std::ios::app );
-	if( file.is_open() ){
-		file<<cfg.getSubRepeatIndex()<<" "<<anz<<" "<<total<<"\n";
-	}
-	else{
-		std::cerr<<"Error in "<< __FUNCTION__ << " in " << __FILE__ << " at line " << __LINE__ << std::endl;
-		std::cerr<<"File "<<fileName<<" could not be created"<<std::endl;
-		exit(1);
-	}
-	file.close();
-	cfg.addCleanFile(fileName, 3);
-	
-	fileName = cfg.getPlotFolderSubRepeatSavePrefixFileName("isActivatedHotSpot.bin");
 	if(cfg.getSubTimeIndex() <= 0){
-		std::string fileName2 = cfg.getPlotFolderSubRepeatSavePrefixFileName("hotSpotPositions.bin");
-		file.open( fileName2.c_str(), std::ios::out | std::ios::binary );
-
-		if( file.is_open() ){
-			std::vector< int > tempHetPosIndices(hetPosIndices.size(),0.0);
-			for(int i=0;i<hetPosIndices.size();i++){
-				for(int j=0;j<hetPosIndices[i].size();j++)
-					tempHetPosIndices[i] += hetPosIndices[i][j];
-				tempHetPosIndices[i] = tempHetPosIndices[i] / hetPosIndices[i].size();
+		if(checkActivatedHotSpots || checkExcitedHotSpots){
+			std::string fileName = cfg.getPlotFolderSubRepeatSavePrefixFileName("hotSpotPositions.bin");
+			std::ofstream file( fileName.c_str(), std::ios::out | std::ios::binary );
+			if( file.is_open() ){
+				std::vector< int > tempHetPosIndices(hetPosIndices.size(),0.0);
+				for(int i=0;i<hetPosIndices.size();i++){
+					double x = 0.0;
+					double y = 0.0;
+					double z = 0.0;
+					for(int j=0;j<hetPosIndices[i].size();j++){
+						std::vector<double> coordinate = grid.getCoordinate(hetPosIndices[i][j]);
+						x += coordinate[0];
+						y += coordinate[1];
+						z += coordinate[2];
+						tempHetPosIndices[i] += hetPosIndices[i][j];
+					}
+					x /= hetPosIndices[i].size();
+					y /= hetPosIndices[i].size();
+					z /= hetPosIndices[i].size();
+					tempHetPosIndices[i] = grid.getPosIndex(x, y, z);
+				}
+				file.write(reinterpret_cast<const char*>(tempHetPosIndices.data()),sizeof(int)*tempHetPosIndices.size());
 			}
-			file.write(reinterpret_cast<const char*>(tempHetPosIndices.data()),sizeof(int)*tempHetPosIndices.size());
+			else{
+				std::cerr<<"Error in "<< __FUNCTION__ << " in " << __FILE__ << " at line " << __LINE__ << std::endl;
+				std::cerr<<"File "<<fileName<<" could not be created"<<std::endl;
+				exit(1);
+			}
+			file.close();
+			cfg.addCleanFile(fileName, 3);
+		}
+		if(checkExcitedPoints){
+			std::string fileName = cfg.getPlotFolderSubRepeatSavePrefixFileName("pointPositions.bin");
+			std::ofstream file( fileName.c_str(), std::ios::out | std::ios::binary );
+			if( file.is_open() ){
+				file.write(reinterpret_cast<const char*>(pointPosindices.data()),sizeof(int)*pointPosindices.size());
+			}
+			else{
+				std::cerr<<"Error in "<< __FUNCTION__ << " in " << __FILE__ << " at line " << __LINE__ << std::endl;
+				std::cerr<<"File "<<fileName<<" could not be created"<<std::endl;
+				exit(1);
+			}
+			file.close();
+			cfg.addCleanFile(fileName, 3);
+		}
+	}
+	
+	//Activated Hot Spots
+	if(checkActivatedHotSpots){
+		int anz = std::count(hetActivationStatus.begin(), hetActivationStatus.end(), 1);
+		int total = hetActivationStatus.size();
+		std::cerr<<"("<<anz<<"/"<<total<<")"<<std::endl;
+		std::string fileName = cfg.getPlotFolderSubTimeSavePrefixFileName("anzActivatedHotSpots.txt");
+		std::ofstream file( fileName.c_str(), std::ios::app );
+		if( file.is_open() ){
+			file<<cfg.getSubRepeatIndex()<<" "<<anz<<" "<<total<<"\n";
 		}
 		else{
 			std::cerr<<"Error in "<< __FUNCTION__ << " in " << __FILE__ << " at line " << __LINE__ << std::endl;
@@ -295,23 +484,95 @@ void Obs_hotSpots::finalize(double *__restrict__ y_prev, double *__restrict__ y,
 		file.close();
 		cfg.addCleanFile(fileName, 3);
 		
-		file.open( fileName.c_str(), std::ios::out | std::ios::binary );
+		fileName = cfg.getPlotFolderSubRepeatSavePrefixFileName("isActivatedHotSpot.bin");
+		if(cfg.getSubTimeIndex() <= 0)
+			file.open( fileName.c_str(), std::ios::out | std::ios::binary );
+		else
+			file.open( fileName.c_str(), std::ios::app | std::ios::binary );
+		if( file.is_open() ){
+			//std::vector< bool > tempHetActivationStatus(hetActivationStatus.size());
+			//for(int i=0;i<hetActivationStatus.size();i++)
+			//	tempHetActivationStatus[i] = bool(hetActivationStatus[i] > 0);
+			//file.write(reinterpret_cast<const char*>(tempHetActivationStatus.data()),sizeof(bool)*tempHetActivationStatus.size());
+			//std::vector< byte > tempHetActivationStatus(hetActivationStatus.size());
+			bool *temp = new bool[hetActivationStatus.size()];
+			for(int i=0;i<hetActivationStatus.size();i++)
+				temp[i] = bool(hetActivationStatus[i] > 0);
+			file.write(reinterpret_cast<const char*>(temp),sizeof(bool)*hetActivationStatus.size());
+			delete[] temp;
+		}
+		else{
+			std::cerr<<"Error in "<< __FUNCTION__ << " in " << __FILE__ << " at line " << __LINE__ << std::endl;
+			std::cerr<<"File "<<fileName<<" could not be created"<<std::endl;
+			exit(1);
+		}
+		file.close();
+		cfg.addCleanFile(fileName, 3);	
 	}
-	else
-		file.open( fileName.c_str(), std::ios::app | std::ios::binary );
-	if( file.is_open() ){
-		std::vector< bool > tempHetActivationStatus(hetActivationStatus.size());
-		for(int i=0;i<hetActivationStatus.size();i++)
-			tempHetActivationStatus[i] = bool(hetActivationStatus[i]);
-		file.write(reinterpret_cast<const char*>(hetActivationStatus.data()),sizeof(bool)*hetActivationStatus.size());
+	
+	//Activation Time
+	if(checkActivationTime == true){
+		std::cerr<<"activationTime"<<activationTime<<" "<<excitablePosIndices.size()<<std::endl;
+		std::string fileName = cfg.getPlotFolderSubTimeSavePrefixFileName("activationTime.txt");
+		std::ofstream file( fileName.c_str(), std::ios::app );
+		if( file.is_open() ){
+			file<<cfg.getSubRepeatIndex()<<" "<<activationTime<<" "<<excitablePosIndices.size()<<"\n";
+		}
+		else{
+			std::cerr<<"Error in "<< __FUNCTION__ << " in " << __FILE__ << " at line " << __LINE__ << std::endl;
+			std::cerr<<"File "<<fileName<<" could not be created"<<std::endl;
+			exit(1);
+		}
+		file.close();
+		cfg.addCleanFile(fileName, 3);
 	}
-	else{
-		std::cerr<<"Error in "<< __FUNCTION__ << " in " << __FILE__ << " at line " << __LINE__ << std::endl;
-		std::cerr<<"File "<<fileName<<" could not be created"<<std::endl;
-		exit(1);
+	
+	//Excited Hot Spots
+	if(checkExcitedHotSpots){
+		std::string fileName = cfg.getPlotFolderSubRepeatSavePrefixFileName("hetExcitationTimes.bin");
+		std::ofstream file;
+		if(cfg.getSubTimeIndex() <= 0)
+			file.open( fileName.c_str(), std::ios::out | std::ios::binary );
+		else
+			file.open( fileName.c_str(), std::ios::app | std::ios::binary );
+		if( file.is_open() ){
+			for(int i=0;i<hetExcitationTimes.size();i++){
+				hetExcitationTimes[i].resize(maxExcitationTimes, std::numeric_limits<double>::min());
+				file.write(reinterpret_cast<const char*>(hetExcitationTimes[i].data()),sizeof(double)*hetExcitationTimes[i].size());
+			}
+		}
+		else{
+			std::cerr<<"Error in "<< __FUNCTION__ << " in " << __FILE__ << " at line " << __LINE__ << std::endl;
+			std::cerr<<"File "<<fileName<<" could not be created"<<std::endl;
+			exit(1);
+		}
+		file.close();
+		cfg.addCleanFile(fileName, 3);
 	}
-	file.close();
-	cfg.addCleanFile(fileName, 3);
+	
+	//Excited Points
+	if(checkExcitedPoints){
+		std::string fileName = cfg.getPlotFolderSubRepeatSavePrefixFileName("pointExcitationTimes.bin");
+		std::ofstream file;
+		if(cfg.getSubTimeIndex() <= 0)
+			file.open( fileName.c_str(), std::ios::out | std::ios::binary );
+		else
+			file.open( fileName.c_str(), std::ios::app | std::ios::binary );
+		if( file.is_open() ){
+			for(int i=0;i<pointExcitationTimes.size();i++){
+				pointExcitationTimes[i].resize(maxExcitationTimes, std::numeric_limits<double>::min());
+				file.write(reinterpret_cast<const char*>(pointExcitationTimes[i].data()),sizeof(double)*pointExcitationTimes[i].size());
+			}
+		}
+		else{
+			std::cerr<<"Error in "<< __FUNCTION__ << " in " << __FILE__ << " at line " << __LINE__ << std::endl;
+			std::cerr<<"File "<<fileName<<" could not be created"<<std::endl;
+			exit(1);
+		}
+		file.close();
+		cfg.addCleanFile(fileName, 3);
+	}
+	
 }
 
 

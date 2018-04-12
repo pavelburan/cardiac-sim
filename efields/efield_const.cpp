@@ -9,7 +9,7 @@ void Efield_const::readEfieldParams(){
 }
 
 double Efield_const::E(double t)const{
-	return (t >= tbeg-Eps::t() && t <= tend+Eps::t()) ? E0 : 0.0 ;
+	return (t >= tbeg-Eps::t() && t <= tend-Eps::t()) ? E0 : 0.0 ;
 }
 
 void Efield_const::feedback(double newtbeg, double newtend, double newtPeriod){

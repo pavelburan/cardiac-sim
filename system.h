@@ -76,6 +76,7 @@ public:
 	void changeStateVector(double* y, int posIndex, double value, int numVar=0)const;
 	void changeStateVector(double* y, const std::vector<int> &posIndices, double value, int numVar=0)const;
 	void changeStateVector(double* y, const std::vector<int> &posIndices, double* values, int numVar=0)const;
+	void changeStateVector(double* y, double value, int numVar=0)const;
 	void changeStateVector(double* y, double* values, int numVar=0)const;
 
 protected:

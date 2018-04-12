@@ -5,44 +5,35 @@
 #include <limits>
 
 Obs_notTerminated::Obs_notTerminated(System& system, const std::string& configFileName, const std::string& keyPrefix):Observer(system,configFileName,keyPrefix),
-														runAllPulses(false),tSave(0.0),fracNotTerminated(0.0),isTerminated(false){
+														tSave(0.0),tSaveVecRaw(),tSaveVec(),fracNotTerminated(0.0),fracNotTerminatedVec(),isTerminated(false),isTerminatedVec(){
 }
 
 void Obs_notTerminated::readParams(){
-	cfg.readInto(runAllPulses, "runAllPulses");
-	tSave = system.gette();
+	//tSave = system.gette();
+	tSave = efield.gettend();
 	cfg.readInto(tSave, "tSave");
+	cfg.readRawInto(tSaveVecRaw, "tSaveVec");
 }
 
 void Obs_notTerminated::init(){
+	cfg.stringAsVector(tSaveVec, tSaveVecRaw);
+	fracNotTerminatedVec.resize(tSaveVec.size(), 0.0);
+	isTerminatedVec.resize(tSaveVec.size(), false);
 	if(system.getIsTimeCoupledByPulse()){
 		cfg.printUp("Zeiten hängen vom Puls ab...");
 		tSave = tSave + system.gett0();
 		cfg.printVar(tSave, "tSave");
+		tSaveVec[0] = tSaveVec[0] + system.gett0(); 
+		tSaveVecRaw="[" + std::to_str(tSaveVec[0]);
+		for(int i=1;i<tSaveVec.size();i++){
+			tSaveVec[i] = tSaveVec[i] + system.gett0(); 
+			tSaveVecRaw += "," + std::to_str(tSaveVec[i]);
+		}
+		tSaveVecRaw += "]";
+		cfg.printVar(tSaveVecRaw, "tSaveVec");
 		cfg.printDown("ready");
 	}
 	
-	if(cfg.getSubTimeIndex() > 0){
-		int subRepeatIndex = -100;
-		double temp = 1.0;
-		std::string fileName = cfg.getPlotFolderSubTimeSavePrefixFileName("notTerminated.txt",-1);
-		std::ifstream file( fileName.c_str() );
-		if( file.is_open() ){
-			while(file >> subRepeatIndex && file >> temp)
-				if(subRepeatIndex == cfg.getSubRepeatIndex())
-					break;
-		}
-		else{
-			std::cerr<<"Error in "<< __FUNCTION__ << " in " << __FILE__ << " at line " << __LINE__ << std::endl;
-			std::cerr<<"File "<<fileName<<" could not be found"<<std::endl;
-			exit(1);
-		}
-		file.close();
-		if(temp > 0.0-Eps::rel() && temp < 0.0+Eps::rel()){
-			fracNotTerminated = 0.0;
-			isTerminated = true;
-		}	
-	}
 }
 
 bool Obs_notTerminated::observe(double *__restrict__ y_prev, double *__restrict__ y, double *__restrict__ dVmdt_prev, double *__restrict__ dVmdt, double *__restrict__ temp, double t, double timeStep, bool isResumeAbleStep){
@@ -58,13 +49,22 @@ bool Obs_notTerminated::observe(double *__restrict__ y_prev, double *__restrict_
 		if(fracNotTerminated > 0.0-Eps::rel() && fracNotTerminated < 0.0+Eps::rel())
 			isTerminated = true;
 	}
-	
-	if(isTerminated && !runAllPulses){
-		cfg.print("Fibrillation is terminated!");
-		return true;
+	for(int i=0;i<tSaveVec.size();i++){
+		if(t > tSaveVec[i]-Eps::t() && t < tSaveVec[i]+Eps::t()){
+			std::vector<bool> isPointOfFraction(grid.getn(), true);
+			#pragma omp parallel for //simd
+			#pragma ivdep
+			for(int j=0;j<grid.getn();j++){
+				isPointOfFraction[j] = (dVmdt[j] > grid.getdVmdtThresh(j) && y[j] > grid.getVmThresh(j))? true : false;
+			}
+			fracNotTerminatedVec[i] = grid.getFraction(isPointOfFraction);
+			std::cerr<<"fracNotTerminated["<<i<<"]="<<fracNotTerminatedVec[i]<<std::endl;
+			if(fracNotTerminated > 0.0-Eps::rel() && fracNotTerminated < 0.0+Eps::rel())
+				isTerminatedVec[i] = true;
+		}
 	}
-	else
-		return false;
+	
+	return false;
 }
 
 void Obs_notTerminated::finalize(double *__restrict__ y_prev, double *__restrict__ y, double *__restrict__ dVmdt_prev, double *__restrict__ dVmdt, double *__restrict__ temp, double t){
@@ -80,4 +80,23 @@ void Obs_notTerminated::finalize(double *__restrict__ y_prev, double *__restrict
 	}
 	file.close();
 	cfg.addCleanFile(fileName, 3);
+	
+	if(tSaveVec.size() > 0){
+		fileName = cfg.getPlotFolderSubTimeSavePrefixFileName("notTerminatedVec.txt");
+		file.open( fileName.c_str(), std::ios::app );
+		if( file.is_open() ){
+			file<<cfg.getSubRepeatIndex();
+			for(int i=0;i<tSaveVec.size();i++){
+				file<<" "<<fracNotTerminatedVec[i];
+			}
+			file<<"\n";
+		}
+		else{
+			std::cerr<<"Error in "<< __FUNCTION__ << " in " << __FILE__ << " at line " << __LINE__ << std::endl;
+			std::cerr<<"File "<<fileName<<" could not be created"<<std::endl;
+			exit(1);
+		}
+		file.close();
+		cfg.addCleanFile(fileName, 3);
+	}
 }

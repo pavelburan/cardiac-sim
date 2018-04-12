@@ -569,6 +569,19 @@ void System::changeStateVector(double* y, const std::vector<int> &posIndices, do
 	}
 }
 
+void System::changeStateVector(double* y, double value, int numVar)const{
+	if(numVar == 0){
+		#pragma omp parallel for
+		for(int i=0;i<getn();i++)
+			y[i] = value;
+	}
+	if(numVar != 0 || VmVecOrdered){
+		#pragma omp parallel for
+		for(int i=0;i<getn();i++)
+			y[getVecIndex(i,numVar)] = value;
+	}
+}
+
 void System::changeStateVector(double* y, double* values, int numVar)const{
 	if(numVar == 0){
 		#pragma omp parallel for

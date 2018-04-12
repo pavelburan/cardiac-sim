@@ -99,6 +99,14 @@ int Grid_FDM3DCartesian::getPosIndex(double xi, double eta, double zeta)const{
 	return int(xi/hx+0.5) + nx*int(eta/hy+0.5) + nxy*int(zeta/hz+0.5);
 }
 
+std::vector<double> Grid_FDM3DCartesian::getCoordinate(int posIndex)const{
+	std::vector<double> coordinate(3,0.0);
+	coordinate[0] = (posIndex % nx)*hx;
+	coordinate[1] = ((posIndex / nx) % ny)*hy;
+	coordinate[2] = (posIndex / nxy)*hz;
+	return coordinate;
+}
+
 std::vector<int> Grid_FDM3DCartesian::getPosIndicesVolume(int posIndex, double dxi, double deta, double dzeta)const{
 	std::vector<int> posIndices;
 	int iBeg = posIndex % nx;
@@ -269,6 +277,13 @@ double Grid_FDM3DCartesian::getMeanIntegral(double *__restrict__ values, const s
 	return sum / nTotal;
 }
 
+void Grid_FDM3DCartesian::setRestingState(double *__restrict__ y, int posIndex)const{
+	for(int numVar=0;numVar<model->getnVars();numVar++){
+		double value = model->getRestingState(numVar);
+		system.changeStateVector(y, posIndex, value, numVar);
+	}
+}
+
 void Grid_FDM3DCartesian::setRestingState(double *__restrict__ y, const std::vector<int>& posIndices)const{
 	for(int numVar=0;numVar<model->getnVars();numVar++){
 		double value = model->getRestingState(numVar);
@@ -276,10 +291,31 @@ void Grid_FDM3DCartesian::setRestingState(double *__restrict__ y, const std::vec
 	}
 }
 
+void Grid_FDM3DCartesian::setRestingState(double *__restrict__ y)const{
+	for(int numVar=0;numVar<model->getnVars();numVar++){
+		double value = model->getRestingState(numVar);
+		system.changeStateVector(y, value, numVar);
+	}
+}
+
+void Grid_FDM3DCartesian::setExcitedState(double *__restrict__ y, int posIndex)const{
+	for(int numVar=0;numVar<model->getnVars();numVar++){
+		double value = model->getExcitedState(numVar);
+		system.changeStateVector(y, posIndex, value, numVar);
+	}
+}
+
 void Grid_FDM3DCartesian::setExcitedState(double *__restrict__ y, const std::vector<int>& posIndices)const{
 	for(int numVar=0;numVar<model->getnVars();numVar++){
 		double value = model->getExcitedState(numVar);
 		system.changeStateVector(y, posIndices, value, numVar);
+	}
+}
+
+void Grid_FDM3DCartesian::setExcitedState(double *__restrict__ y)const{
+	for(int numVar=0;numVar<model->getnVars();numVar++){
+		double value = model->getExcitedState(numVar);
+		system.changeStateVector(y, value, numVar);
 	}
 }
 

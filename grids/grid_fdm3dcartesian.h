@@ -36,6 +36,7 @@ public:
 	double getVges()const{return lx*ly*lz;}
 	double getVSphere(double r)const{return 4.0/3.0*M_PI*r*r*r;};
 	int getPosIndex(double xi=0.0, double eta=0.0, double zeta=0.0)const;
+	std::vector<double> getCoordinate(int posIndex)const;
 	std::vector<int> getPosIndicesVolume(int posIndex, double dxi=0.0, double deta=0.0, double dzeta=0.0)const;
 	std::vector<int> getPosIndicesSphere(int posIndex, double r)const;
 	double getDistance(int posIndex1, int posIndex2)const;
@@ -48,8 +49,12 @@ public:
 	
 	//Modellzugriff
 	Model& getModel(int posIndex) const{return *model;}
+	void setRestingState(double* y, int posIndex)const;
 	void setRestingState(double* y, const std::vector<int>& posIndices)const;
+	void setRestingState(double* y)const;
+	void setExcitedState(double* y, int posIndex)const;
 	void setExcitedState(double* y, const std::vector<int>& posIndices)const;
+	void setExcitedState(double* y)const;
 	
 	//Hetzugriff
 	virtual bool getIsHet(int posIndex) const{ return isHet[posIndex];}

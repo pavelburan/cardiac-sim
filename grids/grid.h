@@ -32,6 +32,7 @@ public:
 	virtual double getVges()const =0;
 	virtual double getVSphere(double r)const =0;
 	virtual int getPosIndex(double xi=0.0, double eta=0.0, double zeta=0.0)const =0;
+	virtual std::vector<double> getCoordinate(int posIndex)const =0;
 	virtual std::vector<int> getPosIndicesVolume(int posIndex, double dxi=0.0, double deta=0.0, double dzeta=0.0)const =0;
 	virtual std::vector<int> getPosIndicesVolume(double xi0=0.0, double dxi=0.0, double eta0=0.0, double deta=0.0, double zeta0=0.0, double dzeta=0.0)const {return getPosIndicesVolume(getPosIndex(xi0 ,eta0 ,zeta0), dxi, deta, dzeta);}
 	virtual std::vector<int> getPosIndicesSphere(int posIndex, double r)const =0;
@@ -48,8 +49,16 @@ public:
 	virtual Model& getModel(int posIndex) const =0;
 	const double& getVmThresh(int posIndex)const{return VmThresh[posIndex];}
 	const double& getdVmdtThresh(int posIndex)const{return dVmdtThresh[posIndex];}
+	virtual void setRestingState(double* y, int posIndex)const =0;
 	virtual void setRestingState(double* y, const std::vector<int>& posIndices)const =0;
+	virtual void setRestingState(double* y)const =0;
+	virtual void setExcitedState(double* y, int posIndex)const =0;
 	virtual void setExcitedState(double* y, const std::vector<int>& posIndices)const =0;
+	virtual void setExcitedState(double* y)const =0;
+	
+	//bool isExciting(const double *__restrict__ y, const double *__restrict__ dVmdt, int posIndex)const{ return y[posIndex] > VmThresh[posIndex] && dVmdt[posIndex] > dVmdtThresh[posIndex];}
+	//bool isExcitable(const double* y, const double* dVmdt, int posIndex)const;
+
 	
 	//Hetzugriff
 	virtual bool getIsHet(int posIndex) const =0;

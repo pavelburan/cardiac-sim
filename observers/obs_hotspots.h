@@ -30,6 +30,8 @@ public:
 	void finalize(double *y_prev, double *y, double *dVmdt_prev, double *dVmdt, double *temp, double t);
 	
 protected:
+	double maxDistance;
+	double checkDt;
 	std::vector< std::vector< int > > hetPosIndices;
 	std::vector< std::vector< int > > hetBorder1PosIndices;
 	std::vector< std::vector< int > > hetBorder2PosIndices;
@@ -37,15 +39,31 @@ protected:
 	std::vector< std::vector< std::vector< int > > > hetBorder2NeighboursBorder1PosIndices;
 	std::vector< std::vector< std::vector< int > > > hetBorder2NeighboursBorder3PosIndices;
 	//Activated Hot Spots
-	double maxDistance;
-	double checkDt;
-	std::vector< int > hetActivationStatus;
-	std::vector< double > hetActivationTime;
+	bool checkActivatedHotSpots;
+	std::vector<int> hetActivationStatus;
+	std::vector<double> hetActivationTime;
+	//Activation Time
+	bool checkActivationTime;
+	double activationRatio;
+	double startTimeE;
+	std::vector<int> excitablePosIndices;
+	std::list<int> excitablePosIndicesList; 
+	double activationTime;
 	//Excited Hot Spots
-	double dt_excitation;
-	double t_next_excitation;
+	bool checkExcitedHotSpots;
+	double minT_excitation;
+	double dt_check_excitation;
+	double t_next_check_excitation;
 	int maxExcitationTimes;
+	std::vector<int> hetExcitationStatus;
+	std::vector<double> hetExcitationTime;
 	std::vector< std::vector< double > > hetExcitationTimes;
+	//Excited Observation points
+	bool checkExcitedPoints;
+	int hetBorderLevel;
+	int maxAnzPoints;
+	std::vector<int> pointPosindices;
+	std::vector< std::vector< double > > pointExcitationTimes;
 
 };
 

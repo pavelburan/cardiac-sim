@@ -30,10 +30,14 @@ private:
 	void saveObsPoints(const std::string& fileName);
 	
 protected:
-	bool runAllPulses;
 	double tSave;
+	std::string tSaveVecRaw;
+	std::vector<double> tSaveVec;
 	double fracNotTerminated;
+	std::vector<double> fracNotTerminatedVec;
 	bool isTerminated;
+	std::vector<bool> isTerminatedVec;
+
 	
 };
 

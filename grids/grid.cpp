@@ -3,6 +3,7 @@
 #include "grid_fdm3dcartesian.h"
 //#include "bessel.h"
 #include "../configuration.h"
+#include "../system.h"
 #include "../models/model.h"
 #include <iostream>
 #include <stdlib.h>
@@ -38,3 +39,18 @@ void Grid::initGrid(){
 		dVmdtThresh[i] = getModel(i).getdVmdtThresh();
 	}
 }
+
+/*bool Grid::isExcitable(const double *__restrict__ y, const double *__restrict__ dVmdt, int posIndex)const{
+	if(y[posIndex] > VmThresh[posIndex] || dVmdt[posIndex] > dVmdtThresh[posIndex])
+		return false;
+	else{
+		double Vm_check = VmThresh[posIndex]*0.0;
+		double dVmdt_check;
+		std::cerr<<Vm_check<<std::endl;
+		getModel(posIndex).f_Vm(&Vm_check, &y[system.getVecIndex(posIndex,1)], &dVmdt_check, 0.0, system.getStateVarStride());
+		std::cerr<<dVmdt_check<<std::endl;
+		std::cerr<<y[system.getVecIndex(posIndex,2)]<<" "<<y[system.getVecIndex(posIndex,1)+system.getStateVarStride()]<<std::endl;
+		return dVmdt_check > dVmdtThresh[posIndex];
+	}
+}
+*/

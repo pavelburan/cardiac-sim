@@ -81,7 +81,7 @@ void Het_spheres::initHets(){
 		}
 		else{
 			std::vector<double> vec;
-			Configuration::stringAsVector(vec, fixedSpheres);
+			cfg.stringAsVector(vec, fixedSpheres);
 			int dim = grid.getDim();
 			int nhet = vec.size() / (dim+1);
 			spheres.resize(nhet);
