@@ -37,7 +37,7 @@ endif
 
 override BUILDDIR := $(strip $(BUILDDIR))
 override SRCDIRS  := $(addsuffix /MakefileAddSources,$(SRCDIRS))
-SOURCES	 := main.cpp ConfigFile.cpp configuration.cpp system.cpp
+SOURCES	 := main.cpp ConfigFile.cpp configuration.cpp system.cpp timeintegration.cpp
 -include $(SRCDIRS)
 #SOURCES := $(wildcard *.$(EXT))
 OBJECTS  := $(addprefix $(BUILDDIR)/,$(SOURCES:.$(EXT)=.o))

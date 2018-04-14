@@ -3,16 +3,17 @@
 #include "../efields/efield.h"
 #include "../grids/grid.h"
 #include "../models/model.h"
+#include "../timeintegration.h"
 #include <limits>
 #include <algorithm>
 
 
 Obs_hotSpots::Obs_hotSpots(System& system, const std::string& configFileName, const std::string& keyPrefix):Observer(system,configFileName,keyPrefix),
-														maxDistance(0.0), checkDt(0.0), hetPosIndices(), hetBorder1PosIndices(), hetBorder2PosIndices(), hetBorder3PosIndices(),hetBorder2NeighboursBorder1PosIndices(), hetBorder2NeighboursBorder3PosIndices(),
+														isExcitableDt(0.1), maxDistance(0.0), checkDt(0.0), hetPosIndices(), hetBorder1PosIndices(), hetBorder2PosIndices(), hetBorder3PosIndices(),hetBorder2NeighboursBorder1PosIndices(), hetBorder2NeighboursBorder3PosIndices(),
 														checkActivatedHotSpots(false), hetActivationStatus(), hetActivationTime(),
 														checkActivationTime(false), activationRatio(0.0), startTimeE(0.0), excitablePosIndices(), excitablePosIndicesList(), activationTime(0.0),
 														checkExcitedHotSpots(false), minT_excitation(0.0), dt_check_excitation(0.0), t_next_check_excitation(0.0), maxExcitationTimes(0), hetExcitationStatus(), hetExcitationTime(), hetExcitationTimes(),
-														checkExcitedPoints(false), hetBorderLevel(0), maxAnzPoints(0), pointPosindices(), pointExcitationTimes(){
+														checkExcitedPoints(false), hetBorderLevel(0), Vm_check(0.0), pointPosindices(), pointLastVm(), pointExcitationStatus(), pointExcitationTimes(), checkRefractionPoints(false), state(), a(), b(), pointRefractionStatus(), pointRefractionTimes0(), pointRefractionTimes(){
 }
 
 void Obs_hotSpots::rekursivRemoveClusterElement(std::vector<int>& posIndicesHet, std::list<int>& posIndicesHetList, std::vector< bool >& isHet, std::vector< std::list<int>::iterator >& hetIterators, std::list<int>::iterator it){
@@ -32,6 +33,7 @@ void Obs_hotSpots::rekursivRemoveClusterElement(std::vector<int>& posIndicesHet,
 }
 
 void Obs_hotSpots::readParams(){
+	cfg.readInto(isExcitableDt, "isExcitableDt");
 	cfg.readInto(maxDistance, "maxDistance");
 	cfg.readInto(checkDt, "checkDt");
 	//Activated Hot Spots
@@ -47,7 +49,9 @@ void Obs_hotSpots::readParams(){
 	//Excited Points
 	cfg.readInto(checkExcitedPoints, "checkExcitedPoints");
 	cfg.readInto(hetBorderLevel, "hetBorderLevel");
-	cfg.readInto(maxAnzPoints, "maxAnzPoints");
+	cfg.readInto(Vm_check, "Vm_check");
+	//Refraction Time points
+	cfg.readInto(checkRefractionPoints, "checkRefractionPoints");
 }
 
 void Obs_hotSpots::init(){
@@ -165,15 +169,15 @@ void Obs_hotSpots::init(){
 	
 	//Excited Hot Spots
 	if(checkExcitedHotSpots){
-		dt_check_excitation = 1.0;
+		//dt_check_excitation = 1.0;
 		t_next_check_excitation = system.gettb();
 		hetExcitationStatus.resize(hetBorder1PosIndices.size(), -1);
 		hetExcitationTime.resize(hetBorder1PosIndices.size(), std::numeric_limits<double>::max());
 		hetExcitationTimes.resize(hetBorder1PosIndices.size());
 	}
 	
-	//Excited Points
-	if(checkExcitedPoints){
+	//Excited Points or Refraction Time
+	if(checkExcitedPoints || checkRefractionPoints){
 		std::vector<bool> tempHetPossiblePoint(system.getn(),true);
 		int nPossible = system.getn();
 		for(int i=0;i<grid.getn();i++){
@@ -210,8 +214,23 @@ void Obs_hotSpots::init(){
 			if(tempHetPossiblePoint[i] == true)
 				pointPosindices.push_back(i);
 		}
-		pointExcitationTimes.resize(nPossible);
+		pointLastVm.resize(pointPosindices.size(),0.0);
+		//Excited Points
+		if(checkExcitedPoints)
+			pointExcitationStatus.resize(pointPosindices.size(),0);
+			pointExcitationTimes.resize(pointPosindices.size());
+		//Refraction Time
+		if(checkRefractionPoints){
+			state.resize(100,0.0);
+			a.resize(100,0.0);
+			b.resize(100,0.0);
+			pointRefractionStatus.resize(pointPosindices.size(),0);
+			pointRefractionTimes0.resize(pointPosindices.size(),system.gett0()-10.0);
+			pointRefractionTimes.resize(pointPosindices.size(),system.gett0()-10.0);
+		}
+			
 	}
+	
 	std::cerr<<"cluster="<<cluster<<std::endl;
 }
 
@@ -244,11 +263,13 @@ bool Obs_hotSpots::observe(double *__restrict__ y_prev, double *__restrict__ y, 
 				isSet[posIndex]= true;
 			}	
 		}
-	}
-	for(int i=0;i<excitablePosIndices.size();i++){
-		int posIndex = excitablePosIndices[i];
-		y[posIndex] = -100.0;
 	}*/
+	if( t>5.0){
+		for(int i=0;i<excitablePosIndices.size();i++){
+			int posIndex = excitablePosIndices[i];
+			y[posIndex] = -100.0;
+		}
+	}
 
 	//Activated Hot Spots
 	if(checkActivatedHotSpots == true && (abs(efield.E(t)) > 0 || abs(efield.E(t-2.0*checkDt)))){
@@ -346,11 +367,12 @@ bool Obs_hotSpots::observe(double *__restrict__ y_prev, double *__restrict__ y, 
 	
 	//Activation Time
 	if(checkActivationTime == true){
-		if(abs(efield.E(t+timeStep)) > 0 && startTimeE > t){
+		if(abs(efield.E(t+timeStep)) > 0.0 && startTimeE > t){
+			std::cerr<<"bla "<<t<<std::endl;
 			startTimeE = t;
 			for(int i=0;i<grid.getn();i++){
-				if(y[i] < grid.getModel(i).getRestingState(0)*0.90 && grid.getIsHet(i) == false)
-				//if(grid.isExcitable(y, dVmdt, i)  && grid.getIsHet(i) == false )
+				//if(y[i] < grid.getModel(i).getRestingState(0)*0.90 && grid.getIsHet(i) == false)
+				if(isExcitable(y, i, t) && grid.getIsHet(i) == false)
 					excitablePosIndicesList.push_back(i);
 			}
 			excitablePosIndices.reserve(excitablePosIndicesList.size());
@@ -401,18 +423,86 @@ bool Obs_hotSpots::observe(double *__restrict__ y_prev, double *__restrict__ y, 
 		//Excited Points
 		if(checkExcitedPoints){
 			for(int i=0;i<pointPosindices.size();i++){
-				if(pointExcitationTimes[i].size() < maxExcitationTimes){
-					if(pointExcitationTimes[i].size() == 0 || (t-pointExcitationTimes[i].back()) > minT_excitation){
-						int posIndex = pointPosindices[i];
-						if(dVmdt[posIndex] > grid.getdVmdtThresh(posIndex) && y[posIndex] > grid.getVmThresh(posIndex)){
-							pointExcitationTimes[i].push_back(t);
-						}
+				int posIndex = pointPosindices[i];
+				if(pointExcitationStatus[i] == 1){
+					if((t-pointExcitationTimes[i].back()) > minT_excitation)
+						pointExcitationStatus[i] = 0;
+				}
+				else if(pointExcitationStatus[i] == 0){
+					if(pointLastVm[i] < Vm_check && y[posIndex] > Vm_check && dVmdt[posIndex]>0.0){
+						pointExcitationTimes[i].push_back(t);
+						if(pointExcitationTimes[i].size() < maxExcitationTimes)
+							pointExcitationStatus[i] = 1;
+						else
+							pointExcitationStatus[i] = 2;
 					}
 				}
+				if(!checkRefractionPoints)
+					pointLastVm[i] = y[posIndex];
 			}
 		}
-		
+		//Refraction Points
+		if(checkRefractionPoints){
+			for(int i=0;i<pointPosindices.size();i++){
+				int posIndex = pointPosindices[i];
+				if(pointRefractionStatus[i] == 1){
+					/*if(posIndex == 999026){ //LR 500484 LRMod  999026 FK 999592
+						if(isExcitable(y, posIndex, t)){
+							pointRefractionTimes[i] = t - pointRefractionTimes0[i];
+							a[0] = pointRefractionTimes[i];
+							pointRefractionStatus[i] = 2;
+						}
+					}*/
+					if(isExcitable(y, posIndex, t)){
+						pointRefractionTimes[i] = t - pointRefractionTimes0[i];
+						pointRefractionStatus[i] = 2;
+					}
+				}
+				else if(pointRefractionStatus[i] == 0){
+					if(pointLastVm[i] < Vm_check && y[posIndex] > Vm_check && dVmdt[posIndex]>0.0){
+						pointRefractionTimes0[i] = t;
+						//b[0]++;
+						//std::cerr<<posIndex<<std::endl;
+						pointRefractionStatus[i] = 1;
+					}
+				}
+				pointLastVm[i] = y[posIndex];
+			}
+		}
 		t_next_check_excitation += dt_check_excitation;
+	}
+	//std::cerr<<pointRefractionTimes0.size()<<" test2 "<<a[0]<<" "<<b[0]<<" "<<y[999026]<<std::endl;
+	return false;
+}
+
+bool Obs_hotSpots::isExcitable(double *__restrict__ y, int posIndex, double t){
+	const Model &model = grid.getModel(posIndex);
+	state[0] = y[posIndex];
+	if(state[0] > grid.getVmThresh(posIndex))
+		return false;
+	else{
+		for(int i=1;i<grid.getModel(posIndex).getnVars();i++){
+			state[i] = y[system.getVecIndex(posIndex, i)];
+		}
+		state[0] = grid.getVmThresh(posIndex);
+		for(double delta_t=isExcitableDt;delta_t<=5.0*isExcitableDt;delta_t+=isExcitableDt){
+			timeInt_nonadaptive(model, state.data(), a.data(), b.data(), t+delta_t, isExcitableDt);
+			//std::cerr<<delta_t<<" "<<state[0]<<std::endl;
+			if(state[0] > Vm_check)
+				return true;
+		}
+		if(state[0] > grid.getVmThresh(posIndex)){
+			double lastVm = state[0];
+			for(double delta_t=isExcitableDt;delta_t<=995.0*isExcitableDt;delta_t+=isExcitableDt){
+				timeInt_nonadaptive(model, state.data(), a.data(), b.data(), t+delta_t, isExcitableDt);
+				//std::cerr<<delta_t<<" "<<state[0]<<std::endl;
+				if(state[0] < lastVm)
+					return false;
+				if(state[0] > Vm_check)
+					return true;
+				lastVm = state[0];
+			}
+		}
 	}
 	return false;
 }
@@ -467,7 +557,7 @@ void Obs_hotSpots::finalize(double *__restrict__ y_prev, double *__restrict__ y,
 	}
 	
 	//Activated Hot Spots
-	if(checkActivatedHotSpots){
+	if(checkActivatedHotSpots || checkRefractionPoints){
 		int anz = std::count(hetActivationStatus.begin(), hetActivationStatus.end(), 1);
 		int total = hetActivationStatus.size();
 		std::cerr<<"("<<anz<<"/"<<total<<")"<<std::endl;
@@ -560,8 +650,30 @@ void Obs_hotSpots::finalize(double *__restrict__ y_prev, double *__restrict__ y,
 			file.open( fileName.c_str(), std::ios::app | std::ios::binary );
 		if( file.is_open() ){
 			for(int i=0;i<pointExcitationTimes.size();i++){
-				pointExcitationTimes[i].resize(maxExcitationTimes, std::numeric_limits<double>::min());
+				pointExcitationTimes[i].resize(maxExcitationTimes, -1.0*std::numeric_limits<double>::max());
 				file.write(reinterpret_cast<const char*>(pointExcitationTimes[i].data()),sizeof(double)*pointExcitationTimes[i].size());
+			}
+		}
+		else{
+			std::cerr<<"Error in "<< __FUNCTION__ << " in " << __FILE__ << " at line " << __LINE__ << std::endl;
+			std::cerr<<"File "<<fileName<<" could not be created"<<std::endl;
+			exit(1);
+		}
+		file.close();
+		cfg.addCleanFile(fileName, 3);
+	}
+	//Refraction Points
+	if(checkRefractionPoints){
+		std::string fileName = cfg.getPlotFolderSubRepeatSavePrefixFileName("pointRefractionTimes.bin");
+		std::ofstream file;
+		if(cfg.getSubTimeIndex() <= 0)
+			file.open( fileName.c_str(), std::ios::out | std::ios::binary );
+		else
+			file.open( fileName.c_str(), std::ios::app | std::ios::binary );
+		if( file.is_open() ){
+			for(int i=0;i<pointRefractionTimes.size();i++){
+				file.write(reinterpret_cast<const char*>(&pointRefractionTimes0[i]),sizeof(double));
+				file.write(reinterpret_cast<const char*>(&pointRefractionTimes[i]),sizeof(double));
 			}
 		}
 		else{

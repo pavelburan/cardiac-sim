@@ -17,7 +17,7 @@ private:
 	Obs_hotSpots(const Obs_hotSpots &observer);
 	Obs_hotSpots &operator=(const Obs_hotSpots &observer);
 	void rekursivRemoveClusterElement(std::vector<int>& posIndicesHet, std::list<int>& posIndicesHetList, std::vector< bool >& isHet, std::vector< std::list<int>::iterator >& hetIterators, std::list<int>::iterator it);
-	
+	bool isExcitable(double* y, int posIndex, double t);
 public:
 	//Zugriffsmethoden
 	bool resumeAble()const{ return true;}
@@ -30,6 +30,7 @@ public:
 	void finalize(double *y_prev, double *y, double *dVmdt_prev, double *dVmdt, double *temp, double t);
 	
 protected:
+	double isExcitableDt;
 	double maxDistance;
 	double checkDt;
 	std::vector< std::vector< int > > hetPosIndices;
@@ -61,10 +62,19 @@ protected:
 	//Excited Observation points
 	bool checkExcitedPoints;
 	int hetBorderLevel;
-	int maxAnzPoints;
+	double Vm_check;
 	std::vector<int> pointPosindices;
+	std::vector< double > pointLastVm;
+	std::vector< int > pointExcitationStatus;
 	std::vector< std::vector< double > > pointExcitationTimes;
-
+	//Refraction Time points
+	bool checkRefractionPoints;
+	std::vector< double > state;
+	std::vector< double > a;
+	std::vector< double > b;
+	std::vector< int > pointRefractionStatus;
+	std::vector< double > pointRefractionTimes0;
+	std::vector< double > pointRefractionTimes;
 };
 
 
