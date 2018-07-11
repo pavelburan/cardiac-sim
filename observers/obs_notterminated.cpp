@@ -99,4 +99,23 @@ void Obs_notTerminated::finalize(double *__restrict__ y_prev, double *__restrict
 		file.close();
 		cfg.addCleanFile(fileName, 3);
 	}
+	
+	
+	fileName = cfg.getPlotFolderSubRepeatSavePrefixFileName("notTerminatedFull.bin");
+	if(cfg.getSubTimeIndex() <= 0)
+		file.open( fileName.c_str(), std::ios::out | std::ios::binary );
+	else
+		file.open( fileName.c_str(), std::ios::app | std::ios::binary );
+	if( file.is_open() ){
+		file.write(reinterpret_cast<const char*>(&fracNotTerminated),sizeof(double));
+		if(tSaveVec.size() > 0)
+			file.write(reinterpret_cast<const char*>(fracNotTerminatedVec.data()),fracNotTerminatedVec.size()*sizeof(double));
+	}
+	else{
+		std::cerr<<"Error in "<< __FUNCTION__ << " in " << __FILE__ << " at line " << __LINE__ << std::endl;
+		std::cerr<<"File "<<fileName<<" could not be created"<<std::endl;
+		exit(1);
+	}
+	file.close();
+	cfg.addCleanFile(fileName, 3);
 }

@@ -30,19 +30,48 @@ public:
 	void finalize(double *y_prev, double *y, double *dVmdt_prev, double *dVmdt, double *temp, double t);
 	
 protected:
+	//excitability parameters
 	double isExcitableDt;
-	double maxDistance;
-	double checkDt;
+	std::vector< double > state;
+	std::vector< double > a;
+	std::vector< double > b;
+	double Vm_check;
+	std::vector< double > lastVm; //pointLastVm
+	
+	//Het-border parameters
+	double hetBorderWidth; //maxDistance
 	std::vector< std::vector< int > > hetPosIndices;
 	std::vector< std::vector< int > > hetBorder1PosIndices;
 	std::vector< std::vector< int > > hetBorder2PosIndices;
 	std::vector< std::vector< int > > hetBorder3PosIndices;
 	std::vector< std::vector< std::vector< int > > > hetBorder2NeighboursBorder1PosIndices;
 	std::vector< std::vector< std::vector< int > > > hetBorder2NeighboursBorder3PosIndices;
+	std::vector<int> hetBorderLevelsMap;
+		
+	//Hot Spot parameters
+	double checkHetDt; //checkDt
+	
+	//Excitation and refraction paramaters
+	double minT_excitation;
+	double dt_check_excitation;
+	double t_next_check_excitation;
+	int maxExcitationTimes;
+	
+	//Observation points Parameters
+	int minFreeHetBorderLevel; //hetBorderLevel
+	std::vector<int> pointPosindices;
+	
 	//Activated Hot Spots
 	bool checkActivatedHotSpots;
 	std::vector<int> hetActivationStatus;
 	std::vector<double> hetActivationTime;
+	
+	//Excited Hot Spots
+	bool checkExcitedHotSpots;
+	std::vector<int> hetExcitationStatus;
+	std::vector<double> hetExcitationTime;
+	std::vector< std::vector< double > > hetExcitationTimes;
+	
 	//Activation Time
 	bool checkActivationTime;
 	double activationRatio;
@@ -50,28 +79,14 @@ protected:
 	std::vector<int> excitablePosIndices;
 	std::list<int> excitablePosIndicesList; 
 	double activationTime;
-	//Excited Hot Spots
-	bool checkExcitedHotSpots;
-	double minT_excitation;
-	double dt_check_excitation;
-	double t_next_check_excitation;
-	int maxExcitationTimes;
-	std::vector<int> hetExcitationStatus;
-	std::vector<double> hetExcitationTime;
-	std::vector< std::vector< double > > hetExcitationTimes;
+	
 	//Excited Observation points
 	bool checkExcitedPoints;
-	int hetBorderLevel;
-	double Vm_check;
-	std::vector<int> pointPosindices;
-	std::vector< double > pointLastVm;
 	std::vector< int > pointExcitationStatus;
 	std::vector< std::vector< double > > pointExcitationTimes;
+	
 	//Refraction Time points
 	bool checkRefractionPoints;
-	std::vector< double > state;
-	std::vector< double > a;
-	std::vector< double > b;
 	std::vector< int > pointRefractionStatus;
 	std::vector< double > pointRefractionTimes0;
 	std::vector< double > pointRefractionTimes;

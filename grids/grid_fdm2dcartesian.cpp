@@ -795,6 +795,7 @@ void Grid_FDM2DCartesian::getCoeffMatrixMonoPetsc(Mat &L, double a, double b) co
 
 void Grid_FDM2DCartesian::getRhsMono(const double *__restrict__ Vm, double *__restrict__ rhsVm, double t, double dt, bool withVm) const{
 	double E = system.getEfield().E(t);
+	std::cerr<<"E = "<<E<<std::endl;
 	if(withVm){
 		#pragma omp parallel for
 		#pragma ivdep
